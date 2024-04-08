@@ -1,5 +1,5 @@
 % Load audio clip
-filename = '/Users/piedeboer/Desktop/Thesis/03-research-phase/local-code/data/LibriSpeech/dev-clean/84/121123/84-121123-0000.flac'; % Provide the path to your audio file
+filename = '/Users/piedeboer/Desktop/Thesis/data/LibriSpeech/dev-clean/84/121123/84-121123-0000.flac'; % Provide the path to your audio file
 [y, Fs] = audioread(filename); % Read audio file and get sampling frequency
 
 % Parameters for STFT
