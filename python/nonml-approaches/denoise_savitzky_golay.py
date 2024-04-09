@@ -1,6 +1,0 @@
-
-
-
-
-
-# Savitzky-Golay filter
