@@ -19,6 +19,9 @@ record = wfdb.rdsamp('/Users/piedeboer/Desktop/Thesis/data/nstdb/118e06', sampto
 # Extract Lead I ECG signal
 noisy_signal = record[0][:, 0]
 
+# TODO:
+# - denoise the signal using EMD .. 
+
 # Denoise the noisy Lead I ECG signal
 denoised_I = denoise_wavelet(noisy_signal, method='BayesShrink', mode='soft', wavelet_levels=4, wavelet= 'sym8', rescale_sigma=True)
 
