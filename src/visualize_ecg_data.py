@@ -5,8 +5,9 @@ from scipy.signal import stft
 import numpy as np
 
 # Load ECG signal and annotation
-record = wfdb.rdsamp('/Users/piedeboer/Desktop/Thesis/data/mitdb/100', sampto=3000)
-annotation = wfdb.rdann('/Users/piedeboer/Desktop/Thesis/data/mitdb/100', 'atr', sampto=3000)
+record = wfdb.rdsamp('data/ardb/215', sampto=3000)
+# annotation = wfdb.rdann('data/ardb/215.dat', 'atr', sampto=3000)
+
 
 # Print record information
 print(record[1])
@@ -31,18 +32,18 @@ ax[2].set_ylabel('Frequency [Hz]')
 ax[2].set_xlabel('Time [sec]')
 ax[2].set_title('STFT of Lead I ECG signal')
 
-# # Display the plot
-# plt.show()
+# Display the plot
+plt.show()
 
-# # # Perform CWT on Lead I ECG signal
-# scales = np.arange(1, 100)
-# cwt_result, _ = pywt.cwt(I, scales, 'mexh')
+# # Perform CWT on Lead I ECG signal
+scales = np.arange(1, 100)
+cwt_result, _ = pywt.cwt(I, scales, 'mexh')
 
-# # # Plot scalogram
-# ax[2].imshow(np.abs(cwt_result), aspect='auto', extent=[0, len(I), scales[-1], scales[0]])
-# ax[2].set_ylabel('Scale')
-# ax[2].set_xlabel('Datapoints')
-# ax[2].set_title('Scalogram')
+# # Plot scalogram
+ax[2].imshow(np.abs(cwt_result), aspect='auto', extent=[0, len(I), scales[-1], scales[0]])
+ax[2].set_ylabel('Scale')
+ax[2].set_xlabel('Datapoints')
+ax[2].set_title('Scalogram')
 
 # Display the plot
 plt.show()

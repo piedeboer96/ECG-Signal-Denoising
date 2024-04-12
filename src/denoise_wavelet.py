@@ -2,9 +2,9 @@ import wfdb
 import pywt
 import numpy as np
 import matplotlib.pyplot as plt
-from skimage.restoration import denoise_wavelet
-from skimage.util import random_noise
-from skimage.metrics import peak_signal_noise_ratio
+# from skimage.restoration import denoise_wavelet
+# from skimage.util import random_noise
+# from skimage.metrics import peak_signal_noise_ratio
 
 
 # Two Approaches
