@@ -9,23 +9,6 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 
 
-############################################################
-# Utility Crap
-def visualize_image(image):
-    # Extract the last two dimensions
-    if image.ndim == 3:
-        image = image[0]  # Assuming only one image is present
-
-    plt.imshow(image, cmap='gray')
-    plt.title('Image')
-    plt.axis('off')
-    plt.show()
-############################################################
-
-
-# TAKEN FROM ECG
-
-
 # gaussian diffusion trainer class
 
 def exists(x):
@@ -36,6 +19,7 @@ def default(val, d):
     if exists(val):
         return val
     return d() if isfunction(d) else d
+
 
 
 class GaussianDiffusion(nn.Module):
@@ -59,7 +43,6 @@ class GaussianDiffusion(nn.Module):
         self.set_new_noise_schedule(config_diff, device=torch.device("cpu"))
 
 
-# ******************************************
 # ******************************************
 # THESE METHODS ARE NOT CHANGED 
 
@@ -134,7 +117,7 @@ class GaussianDiffusion(nn.Module):
     
 
     # ********************************
-    # Sampling, diffusion, backwards,  ... 
+    # Sampling, diffusion, ...
     def predict_start_from_noise(self, x_t, t, noise):
         return self.sqrt_recip_alphas_cumprod[t] * x_t - \
             self.sqrt_recipm1_alphas_cumprod[t] * noise
@@ -171,7 +154,7 @@ class GaussianDiffusion(nn.Module):
         return model_mean + noise * (0.5 * model_log_variance).exp()
 
     @torch.no_grad()
-    def p_sample_loop(self, x_in, continous=False):
+    def p_sample_loop(self, x_in, continous=False):             # Reverse Proces.. Use for inference
         device = self.betas.device
         sample_inter = (1 | (self.num_timesteps//10))
         if not self.conditional:
@@ -215,7 +198,6 @@ class GaussianDiffusion(nn.Module):
             (1 - continuous_sqrt_alpha_cumprod**2).sqrt() * noise
         )
     
-
     def p_losses(self, x_in, noise=None):
         x_start = x_in['HR']    # High Resolution (good image) that gets diffused
         [b, c, h, w] = x_start.shape
@@ -229,20 +211,27 @@ class GaussianDiffusion(nn.Module):
         ).to(x_start.device)
         continuous_sqrt_alpha_cumprod = continuous_sqrt_alpha_cumprod.view(
             b, -1)
+        
         noise = default(noise, lambda: torch.randn_like(x_start))
+        
+        # Diffuse our sample
         x_noisy = self.q_sample(
             x_start=x_start, continuous_sqrt_alpha_cumprod=continuous_sqrt_alpha_cumprod.view(-1, 1, 1, 1), noise=noise)
         if not self.conditional:
             x_recon = self.denoise_fn(x_noisy, continuous_sqrt_alpha_cumprod)
         else:
+            
             y_in = x_in['SR'] # Low Resolution (crap image) that gets fixed and used to condition on...
-            concat_input = torch.cat([y_in,x_noisy], dim=1)
+            concat_input = torch.cat([y_in,x_noisy], dim=1)     # Condition (by concatenating)
+            
+            # Pass to the U-net
             x_recon = self.denoise_fn(concat_input, continuous_sqrt_alpha_cumprod)
             
         loss = self.loss_func(noise, x_recon)  
         return loss
-
-    
+   
+    # ********************************
+    # Forward Pass 
     def forward(self, x, *args, **kwargs):
         return self.p_losses(x, *args, **kwargs)
 
