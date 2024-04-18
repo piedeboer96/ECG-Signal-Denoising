@@ -2,3 +2,5 @@ venv/
 datasets/
 data/
 *.pkl
+*.pth
+*.rar
