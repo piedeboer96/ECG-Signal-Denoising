@@ -141,8 +141,10 @@ config_train = {
     'lr':1.0e-3
 }
 
-train_model = 1
+train_model = 0
+save_model = 0
 
+# Train model...
 if train_model == 1: 
 
     # Define custom dataset class
@@ -218,26 +220,25 @@ if train_model == 1:
         # Print progress
         print(f"Epoch [{epoch+1}/{epochs}], Avg Loss: {avg_loss:.4f}")
 
-    
+# Save model...  
+if save_model ==  1: 
    
-print('Status: Saving Models')
+    print('Status: Saving Models')
 
-# Save diffusion model (model)
-torch.save(model.state_dict(), 'diffusion_model.pth')
+    # Save diffusion model (model)
+    torch.save(model.state_dict(), 'diffusion_model.pth')
 
-# Save denoising model (UNet) (denoise_fn)
-torch.save(model.denoise_fn.state_dict(), 'denoising_model.pth')
-
+    # Save denoising model (UNet) (denoise_fn)
+    torch.save(model.denoise_fn.state_dict(), 'denoising_model.pth')
 
 
 # *******************************
-# Step 4: Inference (or continue training)
+# Step 4: Inference (or continue training..)
 
 print('Status: Inference Time...')
 
-
 # Load a trained denoiser...
-denoise_fn = UNet(
+denoise_fun = UNet(
     in_channel=in_channels,
     out_channel=out_channels,
     inner_channel=inner_channels,
@@ -249,24 +250,26 @@ denoise_fn = UNet(
     with_noise_level_emb=with_noise_level_emb,
     image_size=32
 )
-denoise_fn.load_state_dict(torch.load('denoising_model.pth'))
-denoise_fn.eval()
+denoise_fun.load_state_dict(torch.load('denoising_model.pth'))
+denoise_fun.eval()
 
-
-exit()
-
-diffusion = GaussianDiffusion()
+diffusion = GaussianDiffusion(denoise_fun, image_size=(32,32),channels=3,loss_type='l1',conditional=True,config_diff=config_diff)
 diffusion.load_state_dict(torch.load('diffusion_model.pth'))
 
-# # Diffusion model...
-# diffusion = GaussianDiffusion(
-#     denoise_fn=denoise_fun,         # l
-#     image_size=image_size,
-#     channels=channels,
-#     loss_type=loss_type,
-#     conditional=conditional,
-#     config_diff=config_diff
-# )
+print('Status: Diffusion and denoising model loaded sucesfully')
 
-# # Infer.
-# inference_results = diffusion.p_sample_loop(x_in_test['SR'], continuous=True)
+
+# Inference
+
+print(len(x_in_test['SR']))
+print(x_in_test['SR'][0].shape)
+
+# inference_results = diffusion.p_sample_loop(x_in_test['SR'])
+inf_single = diffusion.p_sample_loop(x_in_test['SR'])
+
+# save_inference_results = 1
+
+# if save_inference_results==1:
+
+#     # Save the results to a file
+#     torch.save(inference_results, 'inference_results.pth')
