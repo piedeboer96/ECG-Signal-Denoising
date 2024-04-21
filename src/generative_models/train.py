@@ -24,11 +24,17 @@ def download_cifar10(data_dir='./data'):
 
 cifar10_train, cifar10_test = download_cifar10()
 
-# Keep a copy of the clean images
+# Load CIFAR-10 data
 clean_images_train = torch.tensor(cifar10_train.data).permute(0, 3, 1, 2).float() / 255
 clean_images_test = torch.tensor(cifar10_test.data).permute(0, 3, 1, 2).float() / 255
 
-# Add Gaussian noise to images and make a copy
+# Cut down the size of train/test drastically 
+clean_images_train = clean_images_train[:50]
+clean_images_test = clean_images_test[:10]
+print(len(clean_images_train))
+print(len(clean_images_test))
+
+# Add Gaussian noise to grayscale images and make a copy
 def add_gaussian_noise(images, mean=0, std=0.1):
     noisy_images = images.clone()
     noisy_images += torch.randn_like(images) * std + mean
@@ -36,6 +42,7 @@ def add_gaussian_noise(images, mean=0, std=0.1):
 
 noisy_images_train = add_gaussian_noise(clean_images_train)
 noisy_images_test = add_gaussian_noise(clean_images_test)
+
 
 # Organize the images into dictionaries
 x_in_train = {'HR': clean_images_train, 'SR': noisy_images_train}
@@ -60,22 +67,26 @@ def visualize_images(images_hr, images_sr, num_images=5):
     plt.tight_layout()
     plt.show()
 
-# Visualize the images
-visualize_images(x_in_train['HR'], x_in_train['SR'])
+
+# # Visualize the images
+# visualize_images(x_in_train['HR'], x_in_train['SR'])
 
 print('Status: Data Loaded Successfully')
 
 
 # ************************************************
-# STEP 2: Diffusion Model and  Denoising Function         
+# STEP 2: Diffusion Model and  Denoising Function  (adapted for grayscale)      
+
+# NOTE: Crap settings... 
+
 
 # Define parameters of the U-Net (denoising function)
-in_channels=6           # Concat x_noisy and y_in results 2 (*3) RGB = 6
-out_channels=3          # RGB
-inner_channels = 4      # Depth feature maps, model complexity 
-norm_groups = 4         # Granularity of normalization, impacting convergence
+in_channels = 6           # RGB=3 , 2x 'concat' input
+out_channels = 3          # Output will also be RGB
+inner_channels = 32        # Depth feature maps, model complexity 
+norm_groups = 32          # Granularity of normalization, impacting convergence
 channel_mults = (1, 2, 4, 8, 8)
-attn_res = (8,)
+attn_res = [8]
 res_blocks = 3
 dropout = 0
 with_noise_level_emb = True
@@ -96,20 +107,20 @@ denoise_fn = UNet(
 )
 
 # Define diffusion model parameters
-image_size = (32, 32)  # Resized image size
-channels = 3  # CIFAR-10 images are RGB
+image_size = (32, 32)     # Resized image size
+channels = 3              # RGB
 loss_type = 'l1'
-conditional = True          # Currently implementation only works conditional
+conditional = True        # Currently, the implementation only works conditional
 
-# Noise Schedule from : https://arxiv.org/pdf/2306.01875.pdf
+# Noise Schedule from: https://arxiv.org/pdf/2306.01875.pdf
 config_diff = {
-    'beta_start':  0.0001,
-    'beta_end':  0.02,
-    'num_steps': 100,  # Reduced number of steps
+    'beta_start': 0.0001,
+    'beta_end': 0.02,
+    'num_steps': 100,      # Reduced number of steps
     'schedule': "quad"
 }
 
-# Intialize the Diffusion  model 
+# Initialize the Diffusion model 
 model = GaussianDiffusion(
     denoise_fn=denoise_fn,
     image_size=image_size,
@@ -119,8 +130,6 @@ model = GaussianDiffusion(
     config_diff=config_diff
 )
 
-
-# *******************************
 # *******************************
 # Step 3: Train the Model 
 
@@ -129,13 +138,12 @@ config_train = {
     'feats':20,
     'epochs':1,
     'batch_size':32,
-    'lr':1.0e-1
+    'lr':1.0e-3
 }
 
+train_model = 1
 
-training_on = 1
-
-if training_on == 1: 
+if train_model == 1: 
 
     # Define custom dataset class
     class DictDataset(Dataset):
@@ -210,35 +218,55 @@ if training_on == 1:
         # Print progress
         print(f"Epoch [{epoch+1}/{epochs}], Avg Loss: {avg_loss:.4f}")
 
-    # TODO:
-    # - save the model
-    # so i can later... continue training it
-    # or use it for inference... 
+    
+   
+print('Status: Saving Models')
+
+# Save diffusion model (model)
+torch.save(model.state_dict(), 'diffusion_model.pth')
+
+# Save denoising model (UNet) (denoise_fn)
+torch.save(model.denoise_fn.state_dict(), 'denoising_model.pth')
+
 
 
 # *******************************
-# Step 4: Inference
+# Step 4: Inference (or continue training)
 
 print('Status: Inference Time...')
 
-# Load the saved model
-model = GaussianDiffusion(
-    denoise_fn=model,
-    image_size=image_size,
-    channels=channels,
-    loss_type=loss_type,
-    conditional=conditional,
-    config_diff=config_diff
+
+# Load a trained denoiser...
+denoise_fn = UNet(
+    in_channel=in_channels,
+    out_channel=out_channels,
+    inner_channel=inner_channels,
+    norm_groups=norm_groups,
+    channel_mults=channel_mults,
+    attn_res=[8],
+    res_blocks=res_blocks,
+    dropout=dropout,
+    with_noise_level_emb=with_noise_level_emb,
+    image_size=32
 )
+denoise_fn.load_state_dict(torch.load('denoising_model.pth'))
+denoise_fn.eval()
 
-checkpoint = torch.load('model_checkpoint.pth')
-model.load_state_dict(checkpoint['gaussian_diffusion_state_dict'])
-denoise_fn.load_state_dict(checkpoint['denoise_fn_state_dict'])
-# model.eval()
 
-# TODO: may have to set the denoise_fn ... like this.
-#model.denoise_fn=denoise_fn.load_state_dict(checkpoint['denoise_fn_state_dict'])
+exit()
 
-# Perform inference using the p_sample_loop method
-inference_results = model.p_sample_loop(x_in_test['SR'], continous=True)
-print("Inference Completed Successfully!")
+diffusion = GaussianDiffusion()
+diffusion.load_state_dict(torch.load('diffusion_model.pth'))
+
+# # Diffusion model...
+# diffusion = GaussianDiffusion(
+#     denoise_fn=denoise_fun,         # l
+#     image_size=image_size,
+#     channels=channels,
+#     loss_type=loss_type,
+#     conditional=conditional,
+#     config_diff=config_diff
+# )
+
+# # Infer.
+# inference_results = diffusion.p_sample_loop(x_in_test['SR'], continuous=True)

@@ -59,6 +59,7 @@ class Upsample(nn.Module):
     def __init__(self, dim):
         super().__init__()
         self.up = nn.Upsample(scale_factor=2, mode="nearest")
+        
         self.conv = nn.Conv2d(dim, dim, 3, padding=1)
 
     def forward(self, x):
@@ -71,8 +72,6 @@ class Downsample(nn.Module):
 
     def forward(self, x):
         return self.conv(x)
-
-
 
 
 # building block modules
@@ -167,7 +166,8 @@ class UNet(nn.Module):
         inner_channel=32,
         norm_groups=32,
         channel_mults=(1, 2, 4, 8, 8),
-        attn_res=(8),
+        # attn_res=(8),
+        attn_res = [8],
         res_blocks=3,
         dropout=0,
         with_noise_level_emb=True,
