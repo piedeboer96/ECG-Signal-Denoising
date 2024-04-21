@@ -178,6 +178,31 @@ class GaussianDiffusion(nn.Module):
             return ret_img
         else:
             return ret_img[-1]
+        
+    @torch.no_grad()
+    def p_sample_loop_single(self, x_in, continuous=False):
+        device = self.betas.device
+        sample_inter = (1 | (self.num_timesteps // 10))
+        if not self.conditional:
+            img = torch.randn_like(x_in, device=device)
+            ret_img = img.unsqueeze(0)  # Add batch dimension
+            for i in tqdm(reversed(range(0, self.num_timesteps)), desc='sampling loop time step', total=self.num_timesteps):
+                img = self.p_sample(img, i)
+                if i % sample_inter == 0:
+                    ret_img = torch.cat([ret_img, img.unsqueeze(0)], dim=0)
+        else:
+            x = x_in.unsqueeze(0)  # Add batch dimension
+            img = torch.randn_like(x, device=device)
+            ret_img = x
+            for i in tqdm(reversed(range(0, self.num_timesteps)), desc='sampling loop time step', total=self.num_timesteps):
+                img = self.p_sample(img, i, condition_x=x)
+                if i % sample_inter == 0:
+                    ret_img = torch.cat([ret_img, img], dim=0)
+        if continuous:
+            return ret_img
+        else:
+            return ret_img[-1].squeeze(0)  # Remove batch dimension for single image
+
 
     @torch.no_grad()
     def sample(self, batch_size=1, continous=False):

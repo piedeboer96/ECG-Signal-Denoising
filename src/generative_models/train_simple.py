@@ -4,6 +4,7 @@ from torchvision import datasets, transforms
 from torch.optim import Adam
 from tqdm import tqdm
 from torch.utils.data import DataLoader, Dataset
+import torchvision.transforms.functional as TF
 
 from diffusion import GaussianDiffusion
 from unet_SR3 import UNet
@@ -12,30 +13,34 @@ from unet_SR3 import UNet
 # *********************************************
 # Step 1: Load Dataset and Prepare Data
 
-# Download CIFAR-10 dataset
-def download_cifar10(data_dir='./data'):
+def download_mnist(data_dir='./data'):
     transform = transforms.Compose([
         transforms.ToTensor(),
-        transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))  # Normalize images to range [-1, 1]
+        transforms.Normalize((0.5,), (0.5,))  # Normalize images to range [-1, 1]
     ])
-    cifar10_train = datasets.CIFAR10(data_dir, train=True, download=True, transform=transform)
-    cifar10_test = datasets.CIFAR10(data_dir, train=False, download=True, transform=transform)
-    return cifar10_train, cifar10_test
+    mnist_train = datasets.MNIST(data_dir, train=True, download=True, transform=transform)
+    mnist_test = datasets.MNIST(data_dir, train=False, download=True, transform=transform)
+    return mnist_train, mnist_test
 
-cifar10_train, cifar10_test = download_cifar10()
+mnist_train, mnist_test = download_mnist()
 
-# Load CIFAR-10 data
-clean_images_train = torch.tensor(cifar10_train.data).permute(0, 3, 1, 2).float() / 255
-clean_images_test = torch.tensor(cifar10_test.data).permute(0, 3, 1, 2).float() / 255
+# Load MNIST data
+clean_images_train = mnist_train.data.unsqueeze(1).float() / 255  # Add a channel dimension
+clean_images_test = mnist_test.data.unsqueeze(1).float() / 255  # Add a channel dimension
+
+# Resize... (for U-Net)
+resize_factor = 16 / 28  # Assuming the original size is 32x32
+clean_images_train = TF.resize(clean_images_train, (int(16), int(16)))
+clean_images_test = TF.resize(clean_images_test, (int(16), int(16)))
 
 # Cut down the size of train/test drastically 
-clean_images_train = clean_images_train[:200]
-clean_images_test = clean_images_test[:40]
+clean_images_train = clean_images_train[:10000]
+clean_images_test = clean_images_test[:2000]
 print(len(clean_images_train))
 print(len(clean_images_test))
 
 # Add Gaussian noise to grayscale images and make a copy
-def add_gaussian_noise(images, mean=0, std=0.2):            # stronger noise std=0.2
+def add_gaussian_noise(images, mean=0, std=0.1):            # stronger noise std=0.2
     noisy_images = images.clone()
     noisy_images += torch.randn_like(images) * std + mean
     return noisy_images
@@ -49,7 +54,7 @@ x_in_test = {'HR': clean_images_test, 'SR': noisy_images_test}
 
 x_in_train_original = {'HR': clean_images_train, 'SR': noisy_images_train}
 
-# Visualize the images
+# # Visualize the images
 def visualize_images(images_hr, images_sr, num_images=5):
     fig, axes = plt.subplots(2, num_images, figsize=(12, 4))
 
@@ -87,21 +92,20 @@ def visualize_tensor(image_tensor, title=None):
 
 
 # Visualize the images
-# visualize_images(x_in_train['HR'][0], x_in_train['SR'][0])
+visualize_images(x_in_train['HR'], x_in_train['SR'])
 
 print(x_in_train['HR'][0].shape)
 # visualize_tensor(x_in_train['HR'][0],'Original.. before everything')
 
 print('Status: Data Loaded Successfully')
 
-
 # ************************************************
 # STEP 2: 
 # Diffusion Model and Denoising Function  (adapted for grayscale)      
 
 # Define parameters of the U-Net (denoising function)
-in_channels = 6           # RGB=3 , 2x 'concat' input
-out_channels = 3          # Output will also be RGB
+in_channels = 2           # Gray , 2x 'concat' input
+out_channels = 1         # Output will also be RGB
 inner_channels = 32        # Depth feature maps, model complexity 
 norm_groups = 32          # Granularity of normalization, impacting convergence
 channel_mults = (1, 2, 4, 8, 8)
@@ -109,7 +113,7 @@ attn_res = [8]
 res_blocks = 3
 dropout = 0
 with_noise_level_emb = True
-image_size = 32
+image_size = 16
 
 # Instantiate the UNet model
 denoise_fn = UNet(
@@ -126,8 +130,8 @@ denoise_fn = UNet(
 )
 
 # Define diffusion model parameters
-image_size = (32, 32)     # Resized image size
-channels = 3              # RGB
+image_size = (16, 16)     # Resized image size
+channels = 1             # RGB
 loss_type = 'l1'
 conditional = True        # Currently, the implementation only works conditional
 
@@ -155,13 +159,13 @@ model = GaussianDiffusion(
 # Training Config
 config_train = { 
     'feats':80,
-    'epochs':400,
+    'epochs':10,
     'batch_size':32,
     'lr':1.0e-3
 }
 
-train_model = 1
-save_model = 1
+train_model = 0
+save_model = 0
 
 # Train model...
 if train_model == 1: 
@@ -252,10 +256,10 @@ if save_model ==  1:
     print('Status: Saving Models')
 
     # Save diffusion model (model)
-    torch.save(model.state_dict(), 'diffusion_model.pth')
+    torch.save(model.state_dict(), 'dif_simple.pth')
 
     # Save denoising model (UNet) (denoise_fn)
-    torch.save(model.denoise_fn.state_dict(), 'denoising_model.pth')
+    torch.save(model.denoise_fn.state_dict(), 'denoise_simple.pth')
 
 # *************************************************
 # Step 4: Inference (or continue training)
@@ -264,8 +268,8 @@ print('Status: Inference Time...')
 
 # Load a trained denoiser...
 denoise_fun = UNet(
-    in_channel=in_channels,
-    out_channel=out_channels,
+    in_channel=2,
+    out_channel=1,
     inner_channel=inner_channels,
     norm_groups=norm_groups,
     channel_mults=channel_mults,
@@ -273,13 +277,13 @@ denoise_fun = UNet(
     res_blocks=res_blocks,
     dropout=dropout,
     with_noise_level_emb=with_noise_level_emb,
-    image_size=32
+    image_size=16
 )
-denoise_fun.load_state_dict(torch.load('denoising_model.pth'))
+denoise_fun.load_state_dict(torch.load('denoise_simple.pth'))
 denoise_fun.eval()
 
-diffusion = GaussianDiffusion(denoise_fun, image_size=(32,32),channels=3,loss_type='l1',conditional=True,config_diff=config_diff)
-diffusion.load_state_dict(torch.load('diffusion_model.pth'))
+diffusion = GaussianDiffusion(denoise_fun, image_size=(16,16),channels=1,loss_type='l1',conditional=True,config_diff=config_diff)
+diffusion.load_state_dict(torch.load('dif_simple.pth'))
 
 print('Status: Diffusion and denoising model loaded sucesfully')
 
@@ -288,20 +292,36 @@ print('Status: Diffusion and denoising model loaded sucesfully')
 print(len(x_in_test['SR']))
 print(x_in_test['SR'][0].shape)
 
-# inference_results = diffusion.p_sample_loop(x_in_test['SR'])
 
-# inf_single = diffusion.p_sample_loop_single(x_in_test['SR'][0])
+def visualize_tensor(image_tensors, titles=None):
+    num_images = len(image_tensors)
 
+    # Check if titles are provided and if their number matches the number of images
+    if titles is not None and len(titles) != num_images:
+        print("Error: Number of titles does not match the number of images.")
+        return
 
-# save_inference_results = 1
+    # Create subplots based on the number of images
+    fig, axes = plt.subplots(1, num_images, figsize=(15, 5))
 
-# if save_inference_results==1:
+    # Iterate over images and titles to plot them
+    for i, (image_tensor, title) in enumerate(zip(image_tensors, titles)):
+        ax = axes[i] if num_images > 1 else axes  # Use appropriate subplot
+        ax.axis('off')  # Hide axes
+        ax.set_title(title) if title else None  # Set subplot title if provided
+        image_np = image_tensor.permute(1, 2, 0).cpu().numpy()  # Convert tensor to numpy array
+        if len(image_np.shape) == 2:  # If grayscale
+            ax.imshow(image_np, cmap='gray')
+        else:  # If RGB
+            ax.imshow(image_np)
 
-#     # Save the results to a file
-#     torch.save(inf_single, 'inf_single_result.pth')
+    plt.show()
 
+# Sample ... 
+sampled_tensor = diffusion.p_sample_loop_single(x_in_train['SR'][1])
+sampled_tensor = sampled_tensor.unsqueeze(0)
 
+image_tensors= [x_in_train_original['HR'][1],x_in_train_original['SR'][1],sampled_tensor ]
+names = ['Original HR', 'Original SR', 'Sampled Image'] 
 
-visualize_tensor(x_in_train_original['HR'][0], 'Original HighQuality')
-visualize_tensor(x_in_train_original['SR'][0], 'Original CrapQuality')
-visualize_tensor(diffusion.p_sample_loop_single(x_in_train['SR'][0]), 'Sampled Image')
+visualize_tensor(image_tensors, names)

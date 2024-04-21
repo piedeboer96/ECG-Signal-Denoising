@@ -2,13 +2,13 @@ import torch
 import matplotlib.pyplot as plt
 
 # Load the saved inference results
-inference_results = torch.load('inference_results.pth')
+inf_result = torch.load('inf_single_result.pth')
 
 
 
-print(inference_results.shape)
-print(len(inference_results))
-print(type(inference_results))
+print(inf_result.shape)
+print(len(inf_result))
+print(type(inf_result))
 
 # Visualize the inference results
 def visualize_results(results):
@@ -23,4 +23,4 @@ def visualize_results(results):
     plt.show()
 
 # Call the visualization function
-visualize_results(inference_results)
+visualize_results(inf_result)
