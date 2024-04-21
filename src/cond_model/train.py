@@ -65,14 +65,15 @@ visualize_images(x_in_train['HR'], x_in_train['SR'])
 
 print('Status: Data Loaded Successfully')
 
-# *************************************
+
+# ************************************************
 # STEP 2: Diffusion Model and  Denoising Function         
 
 # Define parameters of the U-Net (denoising function)
 in_channels=6           # Concat x_noisy and y_in results 2 (*3) RGB = 6
 out_channels=3          # RGB
-inner_channels = 8      # Depth feature maps, model complexity 
-norm_groups = 8         # Granularity of normalization, impacting convergence
+inner_channels = 4      # Depth feature maps, model complexity 
+norm_groups = 4         # Granularity of normalization, impacting convergence
 channel_mults = (1, 2, 4, 8, 8)
 attn_res = (8,)
 res_blocks = 3
@@ -209,17 +210,12 @@ if training_on == 1:
         # Print progress
         print(f"Epoch [{epoch+1}/{epochs}], Avg Loss: {avg_loss:.4f}")
 
-    # Optionally, save the trained model
-    # torch.save(model.state_dict(), "denoising_diffusion_model.pth")
-
-    # Save the trained model (and the denoising function paramters)
-    torch.save({
-        'gaussian_diffusion_state_dict': model.state_dict(),
-        'denoise_fn_state_dict': denoise_fn.state_dict()
-    }, 'model_checkpoint.pth')
+    # TODO:
+    # - save the model
+    # so i can later... continue training it
+    # or use it for inference... 
 
 
-# *******************************
 # *******************************
 # Step 4: Inference
 
