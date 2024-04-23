@@ -1,9 +1,7 @@
 import matplotlib.pyplot as plt
 import torch
 from torchvision import datasets, transforms
-from torch.optim import Adam
-from tqdm import tqdm
-from torch.utils.data import DataLoader, Dataset
+from torch import device
 
 from diffusion import GaussianDiffusion
 from unet_SR3 import UNet

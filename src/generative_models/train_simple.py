@@ -159,13 +159,13 @@ model = GaussianDiffusion(
 # Training Config
 config_train = { 
     'feats':80,
-    'epochs':10,
+    'epochs':20,
     'batch_size':32,
     'lr':1.0e-3
 }
 
-train_model = 0
-save_model = 0
+train_model = 1
+save_model = 1
 
 # Train model...
 if train_model == 1: 

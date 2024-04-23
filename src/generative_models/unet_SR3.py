@@ -1,6 +1,7 @@
 import math
 import torch
 from torch import nn
+from torch import device
 import torch.nn.functional as F
 from inspect import isfunction
 
