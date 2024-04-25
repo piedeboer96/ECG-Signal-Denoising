@@ -19,8 +19,6 @@ def default(val, d):
         return val
     return d() if isfunction(d) else d
 
-
-
 class GaussianDiffusion(nn.Module):
     def __init__(
         self,

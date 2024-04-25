@@ -4,15 +4,11 @@ from torchvision import datasets, transforms
 from torch.optim import Adam
 from tqdm import tqdm
 from torch.utils.data import DataLoader, Dataset
-from torch import device
 import torchvision.transforms.functional as TF
 
 from diffusion import GaussianDiffusion
 from unet_SR3 import UNet
 
-
-# Check if CUDA is available
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # *********************************************
 # Step 1: Load Dataset and Prepare Data
@@ -43,8 +39,6 @@ clean_images_test = clean_images_test[:2000]
 print(len(clean_images_train))
 print(len(clean_images_test))
 
-
-
 # Add Gaussian noise to grayscale images and make a copy
 def add_gaussian_noise(images, mean=0, std=0.1):            # stronger noise std=0.2
     noisy_images = images.clone()
@@ -53,14 +47,6 @@ def add_gaussian_noise(images, mean=0, std=0.1):            # stronger noise std
 
 noisy_images_train = add_gaussian_noise(clean_images_train)
 noisy_images_test = add_gaussian_noise(clean_images_test)
-
-
-# Move tensors to the GPU if available
-clean_images_train = clean_images_train.to(device)
-clean_images_test = clean_images_test.to(device)
-noisy_images_train = noisy_images_train.to(device)
-noisy_images_test = noisy_images_test.to(device)
-
 
 # Organize the images into dictionaries
 x_in_train = {'HR': clean_images_train, 'SR': noisy_images_train}
@@ -106,14 +92,13 @@ def visualize_tensor(image_tensor, title=None):
 
 
 # Visualize the images
-# visualize_images(x_in_train['HR'], x_in_train['SR'])
-visualize_images(x_in_train['HR'].cpu(), x_in_train['SR'].cpu())
-
+visualize_images(x_in_train['HR'], x_in_train['SR'])
 
 print(x_in_train['HR'][0].shape)
 # visualize_tensor(x_in_train['HR'][0],'Original.. before everything')
 
 print('Status: Data Loaded Successfully')
+
 
 # ************************************************
 # STEP 2: 
@@ -121,7 +106,7 @@ print('Status: Data Loaded Successfully')
 
 # Define parameters of the U-Net (denoising function)
 in_channels = 2           # Gray , 2x 'concat' input
-out_channels = 1         # Output will also be RGB
+out_channels = 1          # Output will also be RGB
 inner_channels = 32        # Depth feature maps, model complexity 
 norm_groups = 32          # Granularity of normalization, impacting convergence
 channel_mults = (1, 2, 4, 8, 8)
@@ -168,14 +153,6 @@ model = GaussianDiffusion(
     conditional=conditional,
     config_diff=config_diff
 )
-
-
-# Move models to the GPU if available
-denoise_fn.to(device)
-model.to(device)
-
-# *******************************
-# Step 3: Train the Model 
 
 # *******************************
 # Step 3: Train the Model 
@@ -241,8 +218,9 @@ if train_model == 1:
         pbar = tqdm(train_loader, desc=f"Epoch {epoch+1}/{epochs}", unit="batch")
 
         for batch_data in pbar:
-            # Move tensors to the GPU if available
-            batch_data = {key: val.to(device) for key, val in batch_data.items()}
+            # Move tensors to device
+            for key in batch_data:
+                batch_data[key] = batch_data[key].to(device)
 
             # Zero gradients
             optimizer.zero_grad()
@@ -301,15 +279,15 @@ denoise_fun = UNet(
     dropout=dropout,
     with_noise_level_emb=with_noise_level_emb,
     image_size=16
-).to(device)  # Move the denoising model to the GPU if available
-
-denoise_fun.load_state_dict(torch.load('denoise_simple.pth', map_location=device))
+)
+denoise_fun.load_state_dict(torch.load('denoise_simple.pth'))
 denoise_fun.eval()
 
-diffusion = GaussianDiffusion(denoise_fun, image_size=(16,16),channels=1,loss_type='l1',conditional=True,config_diff=config_diff).to(device)  # Move the diffusion model to the GPU if available
-diffusion.load_state_dict(torch.load('dif_simple.pth', map_location=device))
+diffusion = GaussianDiffusion(denoise_fun, image_size=(16,16),channels=1,loss_type='l1',conditional=True,config_diff=config_diff)
+diffusion.load_state_dict(torch.load('dif_simple.pth'))
 
-print('Status: Diffusion and denoising model loaded successfully')
+print('Status: Diffusion and denoising model loaded sucesfully')
+
 
 # Inference
 print(len(x_in_test['SR']))
