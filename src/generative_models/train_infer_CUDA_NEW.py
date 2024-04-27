@@ -32,6 +32,13 @@ mnist_train, mnist_test = download_mnist()
 clean_images_train = mnist_train.data.unsqueeze(1).float() / 255  # Add a channel dimension
 clean_images_test = mnist_test.data.unsqueeze(1).float() / 255  # Add a channel dimension
 
+# TODO:
+# - check min and max value to see if  tensors are sucessfully normalized
+print("Minimum value of clean_images_train tensor:", clean_images_train.min().item())
+print("Maximum value of clean_images_train tensor:", clean_images_train.max().item())
+
+exit()
+
 # Resize... (for U-Net)
 resize_factor = 16 / 28  # Assuming the original size is 32x32
 clean_images_train = TF.resize(clean_images_train, (int(16), int(16)))
@@ -40,10 +47,6 @@ clean_images_test = TF.resize(clean_images_test, (int(16), int(16)))
 # Cut down the size of train/test drastically 
 clean_images_train = clean_images_train[:10000]
 clean_images_test = clean_images_test[:2000]
-print(len(clean_images_train))
-print(len(clean_images_test))
-
-
 
 # Add Gaussian noise to grayscale images and make a copy
 def add_gaussian_noise(images, mean=0, std=0.1):            # stronger noise std=0.2
@@ -54,13 +57,11 @@ def add_gaussian_noise(images, mean=0, std=0.1):            # stronger noise std
 noisy_images_train = add_gaussian_noise(clean_images_train)
 noisy_images_test = add_gaussian_noise(clean_images_test)
 
-
 # Move tensors to the GPU if available
 clean_images_train = clean_images_train.to(device)
 clean_images_test = clean_images_test.to(device)
 noisy_images_train = noisy_images_train.to(device)
 noisy_images_test = noisy_images_test.to(device)
-
 
 # Organize the images into dictionaries
 x_in_train = {'HR': clean_images_train, 'SR': noisy_images_train}
@@ -104,7 +105,6 @@ def visualize_tensor(image_tensor, title=None):
         plt.title(title)
     plt.show()
 
-
 # Visualize the images
 # visualize_images(x_in_train['HR'], x_in_train['SR'])
 visualize_images(x_in_train['HR'].cpu(), x_in_train['SR'].cpu())
@@ -114,6 +114,21 @@ print(x_in_train['HR'][0].shape)
 # visualize_tensor(x_in_train['HR'][0],'Original.. before everything')
 
 print('Status: Data Loaded Successfully')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # ************************************************
 # STEP 2: 
@@ -146,8 +161,8 @@ denoise_fn = UNet(
 )
 
 # Define diffusion model parameters
-image_size = (16, 16)     # Resized image size
-channels = 1             # RGB
+image_size = (64, 64)     # Resized image size
+channels = 3             # RGB
 loss_type = 'l1'
 conditional = True        # Currently, the implementation only works conditional
 

@@ -3,4 +3,5 @@ datasets/
 data/
 *.pkl
 *.pth
+*.pickle
 *.rar
