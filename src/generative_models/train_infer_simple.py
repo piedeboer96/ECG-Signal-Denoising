@@ -54,6 +54,12 @@ x_in_test = {'HR': clean_images_test, 'SR': noisy_images_test}
 
 x_in_train_original = {'HR': clean_images_train, 'SR': noisy_images_train}
 
+print(type(x_in_train['HR'][0]))
+print(x_in_train['HR'][0].dtype)
+print(x_in_train['HR'][0].shape)
+exit()
+
+
 # # Visualize the images
 def visualize_images(images_hr, images_sr, num_images=5):
     fig, axes = plt.subplots(2, num_images, figsize=(12, 4))

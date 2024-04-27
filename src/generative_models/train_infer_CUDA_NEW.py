@@ -1,150 +1,51 @@
 import matplotlib.pyplot as plt
 import torch
-from torchvision import datasets, transforms
+import pickle
 from torch.optim import Adam
 from tqdm import tqdm
 from torch.utils.data import DataLoader, Dataset
 from torch import device
-import torchvision.transforms.functional as TF
+from sklearn.model_selection import train_test_split
 
 from diffusion import GaussianDiffusion
 from unet_SR3 import UNet
+
+# AUXILARY
+
+# def visualize_tensor(tensor):
+#     print('Shape', tensor.shape)
+
+#     # Convert the tensor to a NumPy array
+#     image_array = tensor.numpy()
+
+#     # Transpose the array to (H, W, C) format
+#     image_array = image_array.transpose(1, 2, 0)
+
+#     # Display the image using Matplotlib
+#     plt.imshow(image_array)
+#     plt.axis('off')  # Turn off axis
+#     plt.show()
 
 
 # Check if CUDA is available
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-# *********************************************
-# Step 1: Load Dataset and Prepare Data
+# *************************
+# STEP 1: MODELS 
+# *************************
+   
 
-def download_mnist(data_dir='./data'):
-    transform = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize((0.5,), (0.5,))  # Normalize images to range [-1, 1]
-    ])
-    mnist_train = datasets.MNIST(data_dir, train=True, download=True, transform=transform)
-    mnist_test = datasets.MNIST(data_dir, train=False, download=True, transform=transform)
-    return mnist_train, mnist_test
-
-mnist_train, mnist_test = download_mnist()
-
-# Load MNIST data
-clean_images_train = mnist_train.data.unsqueeze(1).float() / 255  # Add a channel dimension
-clean_images_test = mnist_test.data.unsqueeze(1).float() / 255  # Add a channel dimension
-
-# TODO:
-# - check min and max value to see if  tensors are sucessfully normalized
-print("Minimum value of clean_images_train tensor:", clean_images_train.min().item())
-print("Maximum value of clean_images_train tensor:", clean_images_train.max().item())
-
-exit()
-
-# Resize... (for U-Net)
-resize_factor = 16 / 28  # Assuming the original size is 32x32
-clean_images_train = TF.resize(clean_images_train, (int(16), int(16)))
-clean_images_test = TF.resize(clean_images_test, (int(16), int(16)))
-
-# Cut down the size of train/test drastically 
-clean_images_train = clean_images_train[:10000]
-clean_images_test = clean_images_test[:2000]
-
-# Add Gaussian noise to grayscale images and make a copy
-def add_gaussian_noise(images, mean=0, std=0.1):            # stronger noise std=0.2
-    noisy_images = images.clone()
-    noisy_images += torch.randn_like(images) * std + mean
-    return noisy_images
-
-noisy_images_train = add_gaussian_noise(clean_images_train)
-noisy_images_test = add_gaussian_noise(clean_images_test)
-
-# Move tensors to the GPU if available
-clean_images_train = clean_images_train.to(device)
-clean_images_test = clean_images_test.to(device)
-noisy_images_train = noisy_images_train.to(device)
-noisy_images_test = noisy_images_test.to(device)
-
-# Organize the images into dictionaries
-x_in_train = {'HR': clean_images_train, 'SR': noisy_images_train}
-x_in_test = {'HR': clean_images_test, 'SR': noisy_images_test}
-
-x_in_train_original = {'HR': clean_images_train, 'SR': noisy_images_train}
-
-# # Visualize the images
-def visualize_images(images_hr, images_sr, num_images=5):
-    fig, axes = plt.subplots(2, num_images, figsize=(12, 4))
-
-    for i in range(num_images):
-        ax1 = axes[0, i]
-        ax2 = axes[1, i]
-        
-        ax1.imshow(images_hr[i].permute(1, 2, 0))
-        ax1.set_title('HR Image')
-        ax1.axis('off')
-
-        ax2.imshow(images_sr[i].permute(1, 2, 0))
-        ax2.set_title('SR Image with Gaussian Noise')
-        ax2.axis('off')
-
-    plt.tight_layout()
-    plt.show()
-
-#  Visualize a tensor
-def visualize_tensor(image_tensor, title=None):
-    # Ensure the tensor has the correct shape [3, height, width]
-    if len(image_tensor.shape) != 3 or image_tensor.shape[0] != 3:
-        print("Error: Invalid tensor shape. Expected [3, height, width].")
-        return
-
-    # Convert the tensor to a numpy array and transpose dimensions for visualization
-    image_np = image_tensor.permute(1, 2, 0).cpu().numpy()
-
-    # Display the image using matplotlib
-    plt.imshow(image_np)
-    plt.axis('off')  # Hide axes
-    if title:
-        plt.title(title)
-    plt.show()
-
-# Visualize the images
-# visualize_images(x_in_train['HR'], x_in_train['SR'])
-visualize_images(x_in_train['HR'].cpu(), x_in_train['SR'].cpu())
-
-
-print(x_in_train['HR'][0].shape)
-# visualize_tensor(x_in_train['HR'][0],'Original.. before everything')
-
-print('Status: Data Loaded Successfully')
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# ************************************************
-# STEP 2: 
-# Diffusion Model and Denoising Function  (adapted for grayscale)      
-
-# Define parameters of the U-Net (denoising function)
-in_channels = 6           # RGB 2x 3 Channels
-out_channels = 1            # Output will also be RGB
-inner_channels = 32        # Depth feature maps, model complexity 
-norm_groups = 32          # Granularity of normalization, impacting convergence
+# # Define parameters of the U-Net (denoising function)
+in_channels = 1*2                       # 2x GrayScale 'concat'
+out_channels = 1                        # Output will also be GrayScale
+inner_channels = 32                     # Depth feature maps, model complexity 
+norm_groups = 32                            # Granularity of normalization, impacting convergence
 channel_mults = (1, 2, 4, 8, 8)
 attn_res = [8]
 res_blocks = 3
 dropout = 0
 with_noise_level_emb = True
-image_size = 16
+image_size = 64
 
 # Instantiate the UNet model
 denoise_fn = UNet(
@@ -162,7 +63,7 @@ denoise_fn = UNet(
 
 # Define diffusion model parameters
 image_size = (64, 64)     # Resized image size
-channels = 3             # RGB
+channels = 1              
 loss_type = 'l1'
 conditional = True        # Currently, the implementation only works conditional
 
@@ -170,7 +71,7 @@ conditional = True        # Currently, the implementation only works conditional
 config_diff = {
     'beta_start': 0.0001,
     'beta_end': 0.5,
-    'num_steps': 50,      # Reduced number of steps
+    'num_steps': 10,      # Reduced number of steps
     'schedule': "quad"
 }
 
@@ -184,22 +85,87 @@ model = GaussianDiffusion(
     config_diff=config_diff
 )
 
-
 # Move models to the GPU if available
 denoise_fn.to(device)
 model.to(device)
 
-# *******************************
-# Step 3: Train the Model 
+print('STATUS --- Model loaded on device:', device)
 
-# *******************************
-# Step 3: Train the Model 
+# # **************************************
+# # STEP 2: DATA LOADING (SMALL)
+# # **************************************
+
+# Load specs_clean from pickle
+with open('specs_clean_normalized_small.pkl', 'rb') as f:
+    specs_clean_original = pickle.load(f)
+
+# Load specs_noisy from pickle
+with open('specs_noisy_normalized_small.pkl', 'rb') as f:
+    specs_noisy_original = pickle.load(f)
+
+# Dummy....
+specs_clean = specs_clean_original[:100]
+specs_noisy = specs_noisy_original[:100]
+
+# Remove from memory 
+del specs_clean_original
+del specs_noisy_original
+
+# Model works with single-point float
+specs_clean = [tensor.float() for tensor in specs_clean]  # float.64 --> float.32
+specs_noisy = [tensor.float() for tensor in specs_noisy]
+
+print('STATUS --- Data pickle loaded')
+
+# Define a custom PyTorch dataset 
+class SpectrogramDataset(Dataset):
+    def __init__(self, specs_clean, specs_noisy, transform=None):
+        self.specs_clean = specs_clean
+        self.specs_noisy = specs_noisy
+        self.transform = transform
+
+    def __len__(self):
+        return len(self.specs_clean)
+
+    def __getitem__(self, idx):
+        spec_clean = self.specs_clean[idx]
+        spec_noisy = self.specs_noisy[idx]
+
+        if self.transform:
+            spec_clean = self.transform(spec_clean)
+            spec_noisy = self.transform(spec_noisy)
+
+        return spec_clean, spec_noisy
+
+# Split the data into training and validation sets
+specs_clean_train, specs_clean_val, specs_noisy_train, specs_noisy_val = train_test_split(
+    specs_clean, specs_noisy, test_size=0.2, random_state=42)
+
+# Create datasets for training and validation
+train_dataset = SpectrogramDataset(specs_clean_train, specs_noisy_train)
+val_dataset = SpectrogramDataset(specs_clean_val, specs_noisy_val)
+
+## THIS WILL BE THE DATA FOR MY MODEL TRAINED BELOW
+x_in_train = {'HR': specs_clean_train, 'SR': specs_noisy_train}
+x_in_test = {'HR': specs_clean_val, 'SR': specs_noisy_val}
+
+# COPY TO VERIFY WITH INFERENCE
+x_in_train_original = {'HR': specs_clean_train, 'SR': specs_noisy_train}
+
+# print(type(x_in_train['HR'][0]))
+# print(x_in_train['HR'][0].dtype)
+# print(x_in_train['HR'][0].shape)
+
+
+# # **************************************
+# # STEP 2: TRANING
+# # **************************************
 
 # Training Config
-config_train = { 
-    'feats':80,
-    'epochs':20,
-    'batch_size':32,
+config_train = {            ## check this...
+    'feats':40,
+    'epochs':1,
+    'batch_size':8,
     'lr':1.0e-3
 }
 
@@ -235,10 +201,8 @@ if train_model == 1:
     test_dataset = DictDataset(x_in_test)
     test_loader = DataLoader(dataset=test_dataset, batch_size=batch_size, shuffle=False)
 
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-    # Move model to device
-    model.to(device)
+    # device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    print('Training on device', device)
 
     # Initialize optimizer
     optimizer = Adam(model.parameters(), lr=lr)
@@ -294,10 +258,10 @@ if save_model ==  1:
     print('Status: Saving Models')
 
     # Save diffusion model (model)
-    torch.save(model.state_dict(), 'dif_simple.pth')
+    torch.save(model.state_dict(), 'dif_simple_SPEK_SMALL_CPU.pth')
 
     # Save denoising model (UNet) (denoise_fn)
-    torch.save(model.denoise_fn.state_dict(), 'denoise_simple.pth')
+    torch.save(model.denoise_fn.state_dict(), 'denoise_simple_SPEK_SMALL_CPU.pth')
 
 # *************************************************
 # Step 4: Inference (or continue training)
@@ -315,14 +279,14 @@ denoise_fun = UNet(
     res_blocks=res_blocks,
     dropout=dropout,
     with_noise_level_emb=with_noise_level_emb,
-    image_size=16
+    image_size=64
 ).to(device)  # Move the denoising model to the GPU if available
 
-denoise_fun.load_state_dict(torch.load('denoise_simple.pth', map_location=device))
+denoise_fun.load_state_dict(torch.load('denoise_simple_SPEK_SMALL_CPU.pth', map_location=device))
 denoise_fun.eval()
 
-diffusion = GaussianDiffusion(denoise_fun, image_size=(16,16),channels=1,loss_type='l1',conditional=True,config_diff=config_diff).to(device)  # Move the diffusion model to the GPU if available
-diffusion.load_state_dict(torch.load('dif_simple.pth', map_location=device))
+diffusion = GaussianDiffusion(denoise_fun, image_size=(64,64),channels=1,loss_type='l1',conditional=True,config_diff=config_diff).to(device)  # Move the diffusion model to the GPU if available
+diffusion.load_state_dict(torch.load('dif_simple_SPEK_SMALL_CPU.pth', map_location=device))
 
 print('Status: Diffusion and denoising model loaded successfully')
 
@@ -362,4 +326,7 @@ sampled_tensor = sampled_tensor.unsqueeze(0)
 image_tensors= [x_in_train_original['HR'][1],x_in_train_original['SR'][1],sampled_tensor ]
 names = ['Original HR', 'Original SR', 'Sampled Image'] 
 
-visualize_tensor(image_tensors, names)
+visualize_tensor(image_tensors,names)
+# visualize_tensor(image_tensors[0])
+# visualize_tensor(image_tensors[1])
+# visualize_tensor(image_tensors[2])
