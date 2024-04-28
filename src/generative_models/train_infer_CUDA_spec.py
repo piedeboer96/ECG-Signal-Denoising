@@ -14,7 +14,7 @@ from unet_SR3 import UNet
 
 # Check if CUDA is available
 #device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-device = 'cpu'
+device = 'cuda'
 
 os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
 
@@ -28,8 +28,8 @@ os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
 # # Define parameters of the U-Net (denoising function)
 in_channels = 1*2                       # 2x GrayScale 'concat'
 out_channels = 1                        # Output will also be GrayScale
-inner_channels = 8                     # Depth feature maps, model complexity 
-norm_groups = 8                            # Granularity of normalization, impacting convergence
+inner_channels = 32                     # Depth feature maps, model complexity 
+norm_groups = 32                        # Granularity of normalization, impacting convergence
 channel_mults = (1, 2, 4, 8, 8)
 attn_res = [8]
 res_blocks = 3
@@ -61,7 +61,7 @@ conditional = True        # Currently, the implementation only works conditional
 config_diff = {
     'beta_start': 0.0001,
     'beta_end': 0.5,
-    'num_steps': 10,      # Reduced number of steps
+    'num_steps': 10,      # Reduced number of steps, they use 50 steps
     'schedule': "quad"
 }
 
@@ -97,13 +97,15 @@ with open('specs_noisy_normalized_small.pkl', 'rb') as f:
 # exit()
 
 # Dummy....
-specs_clean = specs_clean_original[:100]
-specs_noisy = specs_noisy_original[:100]
+specs_clean = specs_clean_original[:500]
+specs_noisy = specs_noisy_original[:500]
+
+print('Num of samples in specs_clean', len(specs_clean))
+print('Num of samples in specs_noisy', len(specs_noisy))
 
 # Remove from memory 
 del specs_clean_original
 del specs_noisy_original
-
 
 # Model works with single-point float
 specs_clean = [tensor.float() for tensor in specs_clean]  # float.64 --> float.32
@@ -153,15 +155,15 @@ x_in_train_original = {'HR': specs_clean_train, 'SR': specs_noisy_train}
 # Training Config
 config_train = {            ## check this...
     'feats':40,
-    'epochs':40,
-    'batch_size':1,
+    'epochs':1,
+    'batch_size':96,
     'lr':1.0e-3
 }
 
 train_model = 1
 save_model = 1
-name_diff_model_save  = "diff_model_small_CPU.pth"
-name_denoise_fn_save = "denoise_fn_small_CPU.pth"
+name_diff_model_save  = "diff_model_small_CUDA.pth"
+name_denoise_fn_save = "denoise_fn_small_CUDA.pth"
 
 # Train model...
 if train_model == 1: 
