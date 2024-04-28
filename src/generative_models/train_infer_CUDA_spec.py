@@ -90,8 +90,8 @@ with open('specs_noisy_normalized_small.pkl', 'rb') as f:
 # exit()
 
 # Dummy....
-specs_clean = specs_clean_original[:100]
-specs_noisy = specs_noisy_original[:100]
+specs_clean = specs_clean_original[:10]
+specs_noisy = specs_noisy_original[:10]
 
 # Remove from memory 
 del specs_clean_original
@@ -146,13 +146,13 @@ x_in_train_original = {'HR': specs_clean_train, 'SR': specs_noisy_train}
 # Training Config
 config_train = {            ## check this...
     'feats':40,
-    'epochs':40,
-    'batch_size':8,
+    'epochs':10,
+    'batch_size':1,
     'lr':1.0e-3
 }
 
-train_model = 0
-save_model = 0
+train_model = 1
+save_model = 1
 name_diff_model_save  = "diff_model_small_CPU.pth"
 name_denoise_fn_save = "denoise_fn_small_CPU.pth"
 
@@ -224,6 +224,9 @@ if train_model == 1:
 
             # Update progress bar description with current loss
             pbar.set_postfix({'Loss': loss.item()})
+
+        # CUDA stuff...
+        torch.cuda.empty_cache()
 
         # Calculate average loss for the epoch
         avg_loss = total_loss / len(train_loader)
