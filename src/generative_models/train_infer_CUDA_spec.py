@@ -10,22 +10,6 @@ from sklearn.model_selection import train_test_split
 from diffusion import GaussianDiffusion
 from unet_SR3 import UNet
 
-# AUXILARY
-
-# def visualize_tensor(tensor):
-#     print('Shape', tensor.shape)
-
-#     # Convert the tensor to a NumPy array
-#     image_array = tensor.numpy()
-
-#     # Transpose the array to (H, W, C) format
-#     image_array = image_array.transpose(1, 2, 0)
-
-#     # Display the image using Matplotlib
-#     plt.imshow(image_array)
-#     plt.axis('off')  # Turn off axis
-#     plt.show()
-
 
 # Check if CUDA is available
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -34,7 +18,6 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 # STEP 1: MODELS 
 # *************************
    
-
 # # Define parameters of the U-Net (denoising function)
 in_channels = 1*2                       # 2x GrayScale 'concat'
 out_channels = 1                        # Output will also be GrayScale
@@ -103,6 +86,9 @@ with open('specs_clean_normalized_small.pkl', 'rb') as f:
 with open('specs_noisy_normalized_small.pkl', 'rb') as f:
     specs_noisy_original = pickle.load(f)
 
+# print('Loaded...')
+# exit()
+
 # Dummy....
 specs_clean = specs_clean_original[:100]
 specs_noisy = specs_noisy_original[:100]
@@ -153,11 +139,6 @@ x_in_test = {'HR': specs_clean_val, 'SR': specs_noisy_val}
 # COPY TO VERIFY WITH INFERENCE
 x_in_train_original = {'HR': specs_clean_train, 'SR': specs_noisy_train}
 
-# print(type(x_in_train['HR'][0]))
-# print(x_in_train['HR'][0].dtype)
-# print(x_in_train['HR'][0].shape)
-
-
 # # **************************************
 # # STEP 2: TRANING
 # # **************************************
@@ -172,6 +153,8 @@ config_train = {            ## check this...
 
 train_model = 0
 save_model = 0
+name_diff_model_save  = "diff_model_small_CPU.pth"
+name_denoise_fn_save = "denoise_fn_small_CPU.pth"
 
 # Train model...
 if train_model == 1: 
@@ -259,10 +242,10 @@ if save_model ==  1:
     print('Status: Saving Models')
 
     # Save diffusion model (model)
-    torch.save(model.state_dict(), 'dif_simple_SPEK_SMALL_CPU.pth')
+    torch.save(model.state_dict(), name_diff_model_save)
 
     # Save denoising model (UNet) (denoise_fn)
-    torch.save(model.denoise_fn.state_dict(), 'denoise_simple_SPEK_SMALL_CPU.pth')
+    torch.save(model.denoise_fn.state_dict(), name_denoise_fn_save)
 
 # *************************************************
 # Step 4: Inference (or continue training)
@@ -283,19 +266,15 @@ denoise_fun = UNet(
     image_size=64
 ).to(device)  # Move the denoising model to the GPU if available
 
-denoise_fun.load_state_dict(torch.load('denoise_simple_SPEK_SMALL_CPU.pth', map_location=device))
+denoise_fun.load_state_dict(torch.load(name_denoise_fn_save, map_location=device))
 denoise_fun.eval()
 
 diffusion = GaussianDiffusion(denoise_fun, image_size=(64,64),channels=1,loss_type='l1',conditional=True,config_diff=config_diff).to(device)  # Move the diffusion model to the GPU if available
-diffusion.load_state_dict(torch.load('dif_simple_SPEK_SMALL_CPU.pth', map_location=device))
+diffusion.load_state_dict(torch.load(name_diff_model_save, map_location=device))
 
 print('Status: Diffusion and denoising model loaded successfully')
 
-# Inference
-print(len(x_in_test['SR']))
-print(x_in_test['SR'][0].shape)
-
-
+# Visualizaton Methods 
 def visualize_tensor(image_tensors, titles=None):
     num_images = len(image_tensors)
 
@@ -320,14 +299,13 @@ def visualize_tensor(image_tensors, titles=None):
 
     plt.show()
 
-# Sample ... 
+# Sample Tensor
 sampled_tensor = diffusion.p_sample_loop_single(x_in_train['SR'][20])
 sampled_tensor = sampled_tensor.unsqueeze(0)
 
 image_tensors= [x_in_train_original['HR'][20],x_in_train_original['SR'][20],sampled_tensor ]
 names = ['Original HR', 'Original SR', 'Sampled Image'] 
 
+# Visualize Results
 visualize_tensor(image_tensors,names)
-# visualize_tensor(image_tensors[0])
-# visualize_tensor(image_tensors[1])
-# visualize_tensor(image_tensors[2])
+
