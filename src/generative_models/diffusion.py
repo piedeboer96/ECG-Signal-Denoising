@@ -36,8 +36,8 @@ class GaussianDiffusion(nn.Module):
         self.loss_type = loss_type
         self.conditional = conditional
         self.num_timesteps = config_diff['num_steps']
-        self.set_loss(device=torch.device("CUDA"))
-        self.set_new_noise_schedule(config_diff, device=torch.device("CUDA"))
+        self.set_loss(device=torch.device("cuda"))
+        self.set_new_noise_schedule(config_diff, device=torch.device("cuda"))
 
 
 # ******************************************
