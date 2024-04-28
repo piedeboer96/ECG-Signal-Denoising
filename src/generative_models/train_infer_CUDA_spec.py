@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import torch
+import os
 import pickle
 from torch.optim import Adam
 from tqdm import tqdm
@@ -14,6 +15,10 @@ from unet_SR3 import UNet
 # Check if CUDA is available
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
+
+os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
+
+
 # *************************
 # STEP 1: MODELS 
 # *************************
@@ -21,8 +26,8 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 # # Define parameters of the U-Net (denoising function)
 in_channels = 1*2                       # 2x GrayScale 'concat'
 out_channels = 1                        # Output will also be GrayScale
-inner_channels = 32                     # Depth feature maps, model complexity 
-norm_groups = 32                            # Granularity of normalization, impacting convergence
+inner_channels = 16                     # Depth feature maps, model complexity 
+norm_groups = 16                            # Granularity of normalization, impacting convergence
 channel_mults = (1, 2, 4, 8, 8)
 attn_res = [8]
 res_blocks = 3
