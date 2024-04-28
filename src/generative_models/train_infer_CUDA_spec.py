@@ -13,10 +13,12 @@ from unet_SR3 import UNet
 
 
 # Check if CUDA is available
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
+#device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+device = 'cpu'
 
 os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
+
+# Check GPU memory allocation
 
 
 # *************************
@@ -26,8 +28,8 @@ os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
 # # Define parameters of the U-Net (denoising function)
 in_channels = 1*2                       # 2x GrayScale 'concat'
 out_channels = 1                        # Output will also be GrayScale
-inner_channels = 16                     # Depth feature maps, model complexity 
-norm_groups = 16                            # Granularity of normalization, impacting convergence
+inner_channels = 8                     # Depth feature maps, model complexity 
+norm_groups = 8                            # Granularity of normalization, impacting convergence
 channel_mults = (1, 2, 4, 8, 8)
 attn_res = [8]
 res_blocks = 3
@@ -95,8 +97,8 @@ with open('specs_noisy_normalized_small.pkl', 'rb') as f:
 # exit()
 
 # Dummy....
-specs_clean = specs_clean_original[:10]
-specs_noisy = specs_noisy_original[:10]
+specs_clean = specs_clean_original[:100]
+specs_noisy = specs_noisy_original[:100]
 
 # Remove from memory 
 del specs_clean_original
@@ -151,7 +153,7 @@ x_in_train_original = {'HR': specs_clean_train, 'SR': specs_noisy_train}
 # Training Config
 config_train = {            ## check this...
     'feats':40,
-    'epochs':10,
+    'epochs':40,
     'batch_size':1,
     'lr':1.0e-3
 }
@@ -224,6 +226,8 @@ if train_model == 1:
             # Update parameters
             optimizer.step()
 
+            torch.cuda.empty_cache()
+            
             # Accumulate total loss
             total_loss += loss.item()
 
@@ -231,7 +235,7 @@ if train_model == 1:
             pbar.set_postfix({'Loss': loss.item()})
 
         # CUDA stuff...
-        torch.cuda.empty_cache()
+        # torch.cuda.empty_cache()
 
         # Calculate average loss for the epoch
         avg_loss = total_loss / len(train_loader)
