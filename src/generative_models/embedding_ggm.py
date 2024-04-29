@@ -1,10 +1,12 @@
 import numpy as np
 import torch
-import pickle
-import tqdm
+# import pickle
+import matplotlib.pyplot as plt
+from tqdm import tqdm  # Corrected import statement
 from pyts.image import MarkovTransitionField
 from torch.utils.data import Dataset, DataLoader
 from sklearn.model_selection import train_test_split
+
 
 
 class EmbeddingGGM:
@@ -54,7 +56,7 @@ class EmbeddingGGM:
         return x  
 
     # Reconstruct
-    def ggm_to_ecg(ggm):
+    def ggm_to_ecg(self, ggm):
 
         # Undo the permuation
         ggm_restored = torch.permute(ggm, (1, 2, 0))
@@ -70,25 +72,34 @@ class EmbeddingGGM:
 
         return diagonals
 
-    def build_ggm_data(clean_slices_pkl, noisy_slice_pkl, k=1):
+    def visualize_tensor(self,tensor):
+        print('Shape', tensor.shape)
+
+        # Convert the tensor to a NumPy array
+        image_array = tensor.numpy()
+
+        # Transpose the array to (H, W, C) format
+        image_array = image_array.transpose(1, 2, 0)
+
+        # Display the image using Matplotlib
+        plt.imshow(image_array)
+        plt.axis('off')  # Turn off axis
+        plt.show()
+
+    def build_ggm_data(self, clean_slices, noisy_slices, k):
 
         embedding_GGM = EmbeddingGGM()
-
-        with open(clean_slices_pkl, 'rb') as f:
-            clean_slices = pickle.load(f)
-
-        with open(noisy_slice_pkl, 'rb') as f:
-            noisy_slices = pickle.load(f)
 
         # Display Info
         num_of_slices = len(clean_slices); print('Number of slices',num_of_slices)
         len_of_slice = len(noisy_slices);  print('Length of slice', len_of_slice)
 
         # SMALL
+        print('k', k)
         num_of_slices_small = int(num_of_slices/k)
         print('Number of slices',num_of_slices_small)
 
-        # Spectrograms
+        # ggmtrograms
         ggms_clean = []
         ggms_noisy = []
 
@@ -99,8 +110,8 @@ class EmbeddingGGM:
         for i in tqdm(range(num_of_slices_small)):  # NOTE : small 
 
             #######
-            ecg_clean =  torch.tensor(clean_slices[i][:sampto])
-            ecg_noisy_EM = torch.tensor(noisy_slices[i][:sampto])
+            ecg_clean =  clean_slices[i][:sampto]
+            ecg_noisy_EM = noisy_slices[i][:sampto]
             
             #######
             ggm_clean = embedding_GGM.ecg_to_ggm(ecg_clean)
@@ -110,8 +121,11 @@ class EmbeddingGGM:
             ggms_clean.append(ggm_clean)
             ggms_noisy.append(ggm_noisy)
 
-        ggms_clean = ggm_clean
-        ggms_noisy = ggm_noisy
+        # ggms_clean = ggm_clean
+        # ggms_noisy = ggm_noisy
+
+        ggms_clean = [tensor.float() for tensor in ggms_clean]  # float.64 --> float.32
+        ggms_noisy = [tensor.float() for tensor in ggms_noisy]
 
         # Define a custom PyTorch dataset 
         class GGMdataset(Dataset):
@@ -124,14 +138,14 @@ class EmbeddingGGM:
                 return len(self.ggms_clean)
 
             def __getitem__(self, idx):
-                spec_clean = self.ggms_clean[idx]
-                spec_noisy = self.ggms_noisy[idx]
+                ggm_clean = self.ggms_clean[idx]
+                ggm_noisy = self.ggms_noisy[idx]
 
                 if self.transform:
-                    spec_clean = self.transform(spec_clean)
-                    spec_noisy = self.transform(spec_noisy)
+                    ggm_clean = self.transform(ggm_clean)
+                    ggm_noisy = self.transform(ggm_noisy)
 
-                return spec_clean, spec_noisy
+                return ggm_clean, ggm_noisy
 
         # Split the data into training and validation sets
         ggms_clean_train, ggms_clean_val, ggms_noisy_train, ggms_noisy_val = train_test_split(
@@ -144,5 +158,9 @@ class EmbeddingGGM:
         # Adapt to SR3 format
         x_in_train = {'HR': ggms_clean_train, 'SR': ggms_noisy_train}
         x_in_test = {'HR': ggms_clean_val, 'SR': ggms_noisy_val}
+
+        # print(x_in_train['HR'][0].shape)
+        embedding_GGM.visualize_tensor(x_in_train['HR'][0])
+
 
         return x_in_train, x_in_test

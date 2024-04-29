@@ -8,26 +8,24 @@ from torch.utils.data import DataLoader, Dataset
 from torch import device
 from sklearn.model_selection import train_test_split
 
-## Models
 from diffusion import GaussianDiffusion
 from unet_SR3 import UNet
-
-## Embeddings
-from embeddings.embedding_spec import EmbeddingSpec
-
 
 
 # Check if CUDA is available
 #device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 device = 'cuda'
+
 os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
 
+# Check GPU memory allocation
+
 
 # *************************
-# STEP 1: MODEL LOADING 
+# STEP 1: MODELS 
 # *************************
    
-# Define parameters of the U-Net (denoising function)
+# # Define parameters of the U-Net (denoising function)
 in_channels = 1*2                       # 2x GrayScale 'concat'
 out_channels = 1                        # Output will also be GrayScale
 inner_channels = 32                     # Depth feature maps, model complexity 
@@ -87,24 +85,68 @@ print('STATUS --- Model loaded on device:', device)
 # # STEP 2: DATA LOADING (SMALL)
 # # **************************************
 
-# Embedding Spectrogram 
-embedding_spec = EmbeddingSpec()
+# Load specs_clean from pickle
+with open('specs_clean_normalized_small.pkl', 'rb') as f:
+    specs_clean_original = pickle.load(f)
 
-# Load Clean and Noisy Slices
-with open('slices_clean.pkl', 'rb') as f:
-    slices_clean = pickle.load(f)
+# Load specs_noisy from pickle
+with open('specs_noisy_normalized_small.pkl', 'rb') as f:
+    specs_noisy_original = pickle.load(f)
 
-with open ('slices_noisy.pkl', 'rb') as f:
-    slices_noisy = pickle.load(f)
+# print('Loaded...')
+# exit()
 
-# Larger
-x_in_train, x_in_test = embedding_spec.build_spec_data(slices_clean, slices_noisy,k=8)
+# Dummy....
+specs_clean = specs_clean_original[:500]
+specs_noisy = specs_noisy_original[:500]
 
-# Copy
-x_in_train_original = x_in_train; x_in_test_original = x_in_test
+print('Num of samples in specs_clean', len(specs_clean))
+print('Num of samples in specs_noisy', len(specs_noisy))
 
+# Remove from memory 
+del specs_clean_original
+del specs_noisy_original
 
+# Model works with single-point float
+specs_clean = [tensor.float() for tensor in specs_clean]  # float.64 --> float.32
+specs_noisy = [tensor.float() for tensor in specs_noisy]
 
+print('STATUS --- Data pickle loaded')
+
+# Define a custom PyTorch dataset 
+class SpectrogramDataset(Dataset):
+    def __init__(self, specs_clean, specs_noisy, transform=None):
+        self.specs_clean = specs_clean
+        self.specs_noisy = specs_noisy
+        self.transform = transform
+
+    def __len__(self):
+        return len(self.specs_clean)
+
+    def __getitem__(self, idx):
+        spec_clean = self.specs_clean[idx]
+        spec_noisy = self.specs_noisy[idx]
+
+        if self.transform:
+            spec_clean = self.transform(spec_clean)
+            spec_noisy = self.transform(spec_noisy)
+
+        return spec_clean, spec_noisy
+
+# Split the data into training and validation sets
+specs_clean_train, specs_clean_val, specs_noisy_train, specs_noisy_val = train_test_split(
+    specs_clean, specs_noisy, test_size=0.2, random_state=42)
+
+# Create datasets for training and validation
+train_dataset = SpectrogramDataset(specs_clean_train, specs_noisy_train)
+val_dataset = SpectrogramDataset(specs_clean_val, specs_noisy_val)
+
+## THIS WILL BE THE DATA FOR MY MODEL TRAINED BELOW
+x_in_train = {'HR': specs_clean_train, 'SR': specs_noisy_train}
+x_in_test = {'HR': specs_clean_val, 'SR': specs_noisy_val}
+
+# COPY TO VERIFY WITH INFERENCE
+x_in_train_original = {'HR': specs_clean_train, 'SR': specs_noisy_train}
 
 # # **************************************
 # # STEP 2: TRANING
@@ -222,82 +264,78 @@ if save_model ==  1:
 # *************************************************
 # Step 4: Inference (or continue training)
 
-run_inference = 0
+print('Status: Inference Time...')
 
-if run_inference ==1 :
+inference_device = 'cpu'
+device = inference_device
 
-    print('Status: Inference Time...')
-
-    inference_device = 'cpu'
-    device = inference_device
-
-    print('Inference device', device)
-
-    # Load a trained denoiser...
-    denoise_fun = UNet(
-        in_channel=2,
-        out_channel=1,
-        inner_channel=inner_channels,
-        norm_groups=norm_groups,
-        channel_mults=channel_mults,
-        attn_res=[8],
-        res_blocks=res_blocks,
-        dropout=dropout,
-        with_noise_level_emb=with_noise_level_emb,
-        image_size=64
-    ).to(device)  # Move the denoising model to the GPU if available
-
-    denoise_fun.load_state_dict(torch.load(name_denoise_fn_save, map_location=device))
-    denoise_fun.eval()
-
-    diffusion = GaussianDiffusion(denoise_fun, image_size=(64,64),channels=1,loss_type='l1',conditional=True,config_diff=config_diff).to(device)  # Move the diffusion model to the GPU if available
-    diffusion.load_state_dict(torch.load(name_diff_model_save, map_location=device))
-
-    print('Status: Diffusion and denoising model loaded successfully')
-
-    # Visualizaton Methods 
-    def visualize_tensor(image_tensors, titles=None):
-        num_images = len(image_tensors)
-
-        # Check if titles are provided and if their number matches the number of images
-        if titles is not None and len(titles) != num_images:
-            print("Error: Number of titles does not match the number of images.")
-            return
-
-        # Create subplots based on the number of images
-        fig, axes = plt.subplots(1, num_images, figsize=(15, 5))
-
-        # Iterate over images and titles to plot them
-        for i, (image_tensor, title) in enumerate(zip(image_tensors, titles)):
-            ax = axes[i] if num_images > 1 else axes  # Use appropriate subplot
-            ax.axis('off')  # Hide axes
-            ax.set_title(title) if title else None  # Set subplot title if provided
-            image_np = image_tensor.permute(1, 2, 0).cpu().numpy()  # Convert tensor to numpy array
-            if len(image_np.shape) == 2:  # If grayscale
-                ax.imshow(image_np, cmap='gray')
-            else:  # If RGB
-                ax.imshow(image_np)
-
-        plt.show()
-
-    # Sample Tensor
-    sampled_tensor = diffusion.p_sample_loop_single(x_in_train['SR'][20])
-    sampled_tensor = sampled_tensor.unsqueeze(0)
-
-    image_tensors= [x_in_train_original['HR'][20],x_in_train_original['SR'][20],sampled_tensor ]
-    names = ['Original HR', 'Original SR', 'Sampled Image'] 
-
-    # Visualize Results
-    visualize_tensor(image_tensors,names)
+print('Inference device', device)
 
 
-    # Save the sampled_tensor as a pickle file... 
-    with open('sampled_tensor.pkl','wb') as f:
-        pickle.dump(sampled_tensor, f)
-        
-        #  TODO:
-        # - sav.dump(sampled_tensor, f)
-else:
-    print('Inference disabled')
+# Load a trained denoiser...
+denoise_fun = UNet(
+    in_channel=2,
+    out_channel=1,
+    inner_channel=inner_channels,
+    norm_groups=norm_groups,
+    channel_mults=channel_mults,
+    attn_res=[8],
+    res_blocks=res_blocks,
+    dropout=dropout,
+    with_noise_level_emb=with_noise_level_emb,
+    image_size=64
+).to(device)  # Move the denoising model to the GPU if available
+
+denoise_fun.load_state_dict(torch.load(name_denoise_fn_save, map_location=device))
+denoise_fun.eval()
+
+diffusion = GaussianDiffusion(denoise_fun, image_size=(64,64),channels=1,loss_type='l1',conditional=True,config_diff=config_diff).to(device)  # Move the diffusion model to the GPU if available
+diffusion.load_state_dict(torch.load(name_diff_model_save, map_location=device))
+
+print('Status: Diffusion and denoising model loaded successfully')
+
+# Visualizaton Methods 
+def visualize_tensor(image_tensors, titles=None):
+    num_images = len(image_tensors)
+
+    # Check if titles are provided and if their number matches the number of images
+    if titles is not None and len(titles) != num_images:
+        print("Error: Number of titles does not match the number of images.")
+        return
+
+    # Create subplots based on the number of images
+    fig, axes = plt.subplots(1, num_images, figsize=(15, 5))
+
+    # Iterate over images and titles to plot them
+    for i, (image_tensor, title) in enumerate(zip(image_tensors, titles)):
+        ax = axes[i] if num_images > 1 else axes  # Use appropriate subplot
+        ax.axis('off')  # Hide axes
+        ax.set_title(title) if title else None  # Set subplot title if provided
+        image_np = image_tensor.permute(1, 2, 0).cpu().numpy()  # Convert tensor to numpy array
+        if len(image_np.shape) == 2:  # If grayscale
+            ax.imshow(image_np, cmap='gray')
+        else:  # If RGB
+            ax.imshow(image_np)
+
+    plt.show()
+
+# Sample Tensor
+sampled_tensor = diffusion.p_sample_loop_single(x_in_train['SR'][20])
+sampled_tensor = sampled_tensor.unsqueeze(0)
+
+image_tensors= [x_in_train_original['HR'][20],x_in_train_original['SR'][20],sampled_tensor ]
+names = ['Original HR', 'Original SR', 'Sampled Image'] 
+
+# Visualize Results
+visualize_tensor(image_tensors,names)
+
+
+# Save the sampled_tensor as a pickle file... 
+with open('sampled_tensor.pkl','wb') as f:
+    pickle.dump(sampled_tensor, f)
+    
+    #  TODO:
+    # - sav.dump(sampled_tensor, f)
+
 
 

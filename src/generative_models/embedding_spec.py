@@ -2,6 +2,7 @@ import torch
 import torchaudio
 import pickle
 import tqdm
+import matplotlib.pyplot as plt
 from torch.utils.data import Dataset, DataLoader
 from sklearn.model_selection import train_test_split
 
@@ -55,6 +56,25 @@ class EmbeddingSpec:
 
         return ecg_signal
     
+    ## NOTE: 
+    ## >> this one needs improvement...
+    def sampled_spec_to_ecg(sampled_spec, min_value, max_value, n_fft, hop_length, n_iter):
+        
+        embedding_spec = EmbeddingSpec()
+        # Undo normalization
+        spec_log = embedding_spec.undo_normalization_tensor(sampled_spec, min_value, max_value)
+
+        # Undo log operation
+        spec = torch.pow(10, spec_log)
+
+        # Compute inverse spectrogram
+        ecg_signal = torchaudio.transforms.GriffinLim(n_fft=n_fft, n_iter=n_iter, hop_length=hop_length)(spec)
+
+        # Squeeze the batch and channel dimensions
+        ecg_signal = ecg_signal.squeeze(0).squeeze(0)
+
+        return ecg_signal
+
     def build_spec_data(clean_slices_pkl, noisy_slice_pkl, k=1):
 
         embedding_spec = EmbeddingSpec()
@@ -91,14 +111,19 @@ class EmbeddingSpec:
             
             #######
             spec_clean = embedding_spec.ecg_to_spectrogram_log(ecg_clean, n_fft, hop_length)
+            spec_clean = embedding_spec.normalize_tensor(spec_clean)                                    # normalize
             spec_noisy_EM = embedding_spec.ecg_to_spectrogram_log(ecg_noisy_EM, n_fft, hop_length)
+            spec_noisy_EM = embedding_spec.normalize_tensor(spec_noisy_EM)                              # normalize
 
             #######
             specs_clean.append(spec_clean)
             specs_noisy_EM.append(spec_noisy_EM)
 
-        specs_clean = specs_clean
-        specs_noisy = specs_noisy_EM
+        # specs_clean = specs_clean
+        # specs_noisy = specs_noisy_EM
+
+        specs_clean = [tensor.float() for tensor in specs_clean]  # float.64 --> float.32
+        specs_noisy = [tensor.float() for tensor in specs_noisy_EM]
 
         # Define a custom PyTorch dataset 
         class SpectrogramDataset(Dataset):
@@ -133,3 +158,33 @@ class EmbeddingSpec:
         x_in_test = {'HR': specs_clean_val, 'SR': specs_noisy_val}
 
         return x_in_train, x_in_test
+    
+    def normalize_tensor(input_tensor):
+        min_val = torch.min(input_tensor)
+        max_val = torch.max(input_tensor)
+
+        # Normalize the tensor between -1 and 1
+        normalized_tensor = 2 * ((input_tensor - min_val) / (max_val - min_val)) - 1
+
+        return normalized_tensor
+    
+    def undo_normalization_tensor(normalized_tensor, min_val, max_val):     # NOTE: when reconstruction, use min_val and max_val from distrubution
+
+        # Undo normalization
+        original_tensor = ((normalized_tensor + 1) / 2) * (max_val - min_val) + min_val
+
+        return original_tensor
+
+    def visualize_tensor(self,tensor):
+        print('Shape', tensor.shape)
+
+        # Convert the tensor to a NumPy array
+        image_array = tensor.numpy()
+
+        # Transpose the array to (H, W, C) format
+        image_array = image_array.transpose(1, 2, 0)
+
+        # Display the image using Matplotlib
+        plt.imshow(image_array)
+        plt.axis('off')  # Turn off axis
+        plt.show()

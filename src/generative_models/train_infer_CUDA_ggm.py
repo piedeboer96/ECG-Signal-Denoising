@@ -6,20 +6,26 @@ from tqdm import tqdm
 from torch.utils.data import DataLoader, Dataset
 from torch import device
 from sklearn.model_selection import train_test_split
+from datetime import datetime
 
+# Models
 from diffusion import GaussianDiffusion
 from unet_SR3 import UNet
 
+# Embedding
+from embedding_ggm import EmbeddingGGM
+
 
 # # Check if CUDA is available
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+# device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+device = 'cpu'
 
 # # *************************
 # # STEP 1: MODELS 
 # # *************************
    
 # Define parameters of the U-Net (denoising function)
-in_channels = 6                       # 2x RGB 'concat'
+in_channels = 6                         # 2x RGB 'concat'
 out_channels = 3                        # Output will also be GrayScale
 inner_channels = 32                     # Depth feature maps, model complexity 
 norm_groups = 32                            # Granularity of normalization, impacting convergence
@@ -78,61 +84,23 @@ print('STATUS --- Model loaded on device:', device)
 # # STEP 2: DATA LOADING (SMALL)
 # # **************************************
 
-with open('ggm_clean_30.pkl', 'rb') as f:
-    specs_clean = pickle.load(f)
+# Embedding Spectrogram 
+embedding_ggm = EmbeddingGGM()
 
-with open('ggm_noisy_30.pkl', 'rb') as f:
-    specs_noisy = pickle.load(f)
+# Load Clean and Noisy Slices
+with open('slices_clean.pkl', 'rb') as f:
+    slices_clean = pickle.load(f)
 
-specs_clean = specs_clean[:10]
-specs_noisy = specs_noisy[:10]
+with open ('slices_noisy.pkl', 'rb') as f:
+    slices_noisy = pickle.load(f)
 
-print(specs_clean[0])
+# Larger K means less data...
+x_in_train, x_in_test = embedding_ggm.build_ggm_data(clean_slices= slices_clean, noisy_slices=slices_noisy,k=4000)
+print('Size of x_in_train', len(x_in_train))
+print('Size of x_in_test', len(x_in_test))
 
-# Model works with single-point float
-specs_clean = [tensor.float() for tensor in specs_clean]  # float.64 --> float.32
-specs_noisy = [tensor.float() for tensor in specs_noisy]
-
-print('STATUS --- Data pickle loaded')
-
-# Define a custom PyTorch dataset 
-class SpectrogramDataset(Dataset):
-    def __init__(self, specs_clean, specs_noisy, transform=None):
-        self.specs_clean = specs_clean
-        self.specs_noisy = specs_noisy
-        self.transform = transform
-
-    def __len__(self):
-        return len(self.specs_clean)
-
-    def __getitem__(self, idx):
-        spec_clean = self.specs_clean[idx]
-        spec_noisy = self.specs_noisy[idx]
-
-        if self.transform:
-            spec_clean = self.transform(spec_clean)
-            spec_noisy = self.transform(spec_noisy)
-
-        return spec_clean, spec_noisy
-
-# Split the data into training and validation sets
-specs_clean_train, specs_clean_val, specs_noisy_train, specs_noisy_val = train_test_split(
-    specs_clean, specs_noisy, test_size=0.2, random_state=42)
-
-# Create datasets for training and validation
-train_dataset = SpectrogramDataset(specs_clean_train, specs_noisy_train)
-val_dataset = SpectrogramDataset(specs_clean_val, specs_noisy_val)
-
-## THIS WILL BE THE DATA FOR MY MODEL TRAINED BELOW
-x_in_train = {'HR': specs_clean_train, 'SR': specs_noisy_train}
-x_in_test = {'HR': specs_clean_val, 'SR': specs_noisy_val}
-
-# COPY TO VERIFY WITH INFERENCE
-x_in_train_original = {'HR': specs_clean_train, 'SR': specs_noisy_train}
-
-print(type(x_in_train['HR'][0]))
-print(x_in_train['HR'][0].dtype)
-print(x_in_train['HR'][0].shape)
+# Copy
+x_in_train_original = x_in_train; x_in_test_original = x_in_test
 
 
 # # **************************************
@@ -147,8 +115,25 @@ config_train = {            ## check this...
     'lr':1.0e-3
 }
 
-train_model = 0
-save_model = 0
+train_model = 1
+save_model = 1
+
+# Get current timestamp
+current_time = datetime.now()
+
+# Extract hour and minute from the timestamp
+hour = current_time.hour
+minute = current_time.minute
+
+# Format hour and minute in the desired format
+formatted_time = f"{hour}h{minute:02d}"  # :02d ensures that minutes are displayed with leading zero if less than 10
+
+print(formatted_time)  # Output will be something like: 14h11
+
+# SAVE THE MODELS
+save_model_diff = 'diff_model_ggm' + str(formatted_time) + '.pth'
+save_model_dn = 'dn_model_ggm' + str(formatted_time) + '.pth'
+
 
 # Train model...
 if train_model == 1: 
@@ -236,15 +221,19 @@ if save_model ==  1:
     print('Status: Saving Models')
 
     # Save diffusion model (model)
-    torch.save(model.state_dict(), 'dif_simple_GGM_SMALL_CPU.pth')
+    torch.save(model.state_dict(), save_model_diff)
 
     # Save denoising model (UNet) (denoise_fn)
-    torch.save(model.denoise_fn.state_dict(), 'denoise_simple_GGM_SMALL_CPU.pth')
+    torch.save(model.denoise_fn.state_dict(), save_model_dn)
 
 # *************************************************
 # Step 4: Inference (or continue training)
 
 print('Status: Inference Time...')
+
+# ! INFERENCE NEEDS TO BE ON CPU
+inference_device = 'cpu'
+device = inference_device
 
 # Load a trained denoiser...
 denoise_fun = UNet(
@@ -260,73 +249,54 @@ denoise_fun = UNet(
     image_size=512
 ).to(device)  # Move the denoising model to the GPU if available
 
-denoise_fun.load_state_dict(torch.load('denoise_simple_GGM_SMALL_CPU.pth', map_location=device))
+denoise_fun.load_state_dict(torch.load(save_model_dn, map_location=device))
 denoise_fun.eval()
 
 diffusion = GaussianDiffusion(denoise_fun, image_size=(512,512),channels=1,loss_type='l1',conditional=True,config_diff=config_diff).to(device)  # Move the diffusion model to the GPU if available
-diffusion.load_state_dict(torch.load('dif_simple_GGM_SMALL_CPU.pth', map_location=device))
+diffusion.load_state_dict(torch.load(save_model_diff, map_location=device))
 
 print('Status: Diffusion and denoising model loaded successfully')
 
-# Inference
-print(len(x_in_test['SR']))
-print(x_in_test['SR'][0].shape)
+def visualize_tensor(image_tensors, titles=None):
+        num_images = len(image_tensors)
 
+        # Check if titles are provided and if their number matches the number of images
+        if titles is not None and len(titles) != num_images:
+            print("Error: Number of titles does not match the number of images.")
+            return
 
-# def visualize_tensor(image_tensors, titles=None):
-#     num_images = len(image_tensors)
+        # Create subplots based on the number of images
+        fig, axes = plt.subplots(1, num_images, figsize=(15, 5))
 
-#     # Check if titles are provided and if their number matches the number of images
-#     if titles is not None and len(titles) != num_images:
-#         print("Error: Number of titles does not match the number of images.")
-#         return
+        # Iterate over images and titles to plot them
+        for i, (image_tensor, title) in enumerate(zip(image_tensors, titles)):
+            ax = axes[i] if num_images > 1 else axes  # Use appropriate subplot
+            ax.axis('off')  # Hide axes
+            ax.set_title(title) if title else None  # Set subplot title if provided
+            image_np = image_tensor.permute(1, 2, 0).cpu().numpy()  # Convert tensor to numpy array
+            if len(image_np.shape) == 2:  # If grayscale
+                ax.imshow(image_np, cmap='gray')
+            else:  # If RGB
+                ax.imshow(image_np)
 
-#     # Create subplots based on the number of images
-#     fig, axes = plt.subplots(1, num_images, figsize=(15, 5))
+        plt.show()
 
-#     # Iterate over images and titles to plot them
-#     for i, (image_tensor, title) in enumerate(zip(image_tensors, titles)):
-#         ax = axes[i] if num_images > 1 else axes  # Use appropriate subplot
-#         ax.axis('off')  # Hide axes
-#         ax.set_title(title) if title else None  # Set subplot title if provided
-#         image_np = image_tensor.permute(1, 2, 0).cpu().numpy()  # Convert tensor to numpy array
-#         if len(image_np.shape) == 2:  # If grayscale
-#             ax.imshow(image_np, cmap='gray')
-#         else:  # If RGB
-#             ax.imshow(image_np)
+    # Sample Tensor
 
-#     plt.show()
+idx_sampled = 0
 
-import matplotlib.pyplot as plt
+sampled_tensor = diffusion.p_sample_loop_single(x_in_train['SR'][idx_sampled])
+sampled_tensor = sampled_tensor.unsqueeze(0)
 
-def visualize_tensor(tensor):
-    print('Shape', tensor.shape)
+image_tensors= [x_in_train_original['HR'][idx_sampled],x_in_train_original['SR'][idx_sampled],sampled_tensor ]
+names = ['Original HR', 'Original SR', 'Sampled Image'] 
 
-    # Convert the tensor to a NumPy array
-    image_array = tensor.numpy()
+# Visualize Results
+visualize_tensor(image_tensors,names)
 
-    # Transpose the array to (H, W, C) format
-    image_array = image_array.transpose(1, 2, 0)
-
-    # Display the image using Matplotlib
-    plt.imshow(image_array)
-    plt.axis('off')  # Turn off axis
-    plt.show()
-
-# Sample  
-sampled_tensor = diffusion.p_sample_loop_single(x_in_train['SR'][1])
-
-print('shape..',sampled_tensor.shape)
-with open('sampled_tensor_ggm', 'wb') as file:
-    pickle.dump(sampled_tensor, file)
-
-
-# sampled_tensor = sampled_tensor.unsqueeze(0)
-
-image_tensors= [x_in_train_original['HR'][1],x_in_train_original['SR'][1],sampled_tensor ]
-# names = ['Original HR', 'Original SR', 'Sampled Image'] 
-
-# visualize_tensor(image_tensors,names)
-visualize_tensor(image_tensors[0])
-visualize_tensor(image_tensors[1])
-visualize_tensor(image_tensors[2])
+# Save the sampled_tensor as a pickle file... 
+with open('sampled_tensor_ggm.pkl','wb') as f:
+    pickle.dump(sampled_tensor, f)
+        
+    #  TODO:
+     # - sav.dump(sampled_tensor, f)
