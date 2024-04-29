@@ -119,7 +119,7 @@ class EmbeddingSpec:
             specs_clean.append(spec_clean)
             specs_noisy_EM.append(spec_noisy_EM)
 
-        # specs_clean = specs_clean
+        # specs_clean = specs_cleanls
         # specs_noisy = specs_noisy_EM
 
         specs_clean = [tensor.float() for tensor in specs_clean]  # float.64 --> float.32

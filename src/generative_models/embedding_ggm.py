@@ -8,6 +8,9 @@ from torch.utils.data import Dataset, DataLoader
 from sklearn.model_selection import train_test_split
 
 
+###### NOTE
+###### ----> TOO HEAVY
+###### ----> TOO SLOW : unknown time complexity of MTF methods.
 
 class EmbeddingGGM:
     def __init__(self):

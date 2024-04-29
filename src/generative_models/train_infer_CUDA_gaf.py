@@ -13,7 +13,7 @@ from diffusion import GaussianDiffusion
 from unet_SR3 import UNet
 
 # Embedding
-from embedding_ggm import EmbeddingGGM
+from embedding_gaf import EmbeddingGAF
 
 # # Check if CUDA is available
 # device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -24,8 +24,8 @@ device = 'cpu'
 # # *************************
    
 # Define parameters of the U-Net (denoising function)
-in_channels = 6                         # 2x RGB 'concat'
-out_channels = 3                        # Output will also be GrayScale
+in_channels = 2                         # 2x RGB 'concat'
+out_channels = 1                        # Output will also be GrayScale
 inner_channels = 32                     # Depth feature maps, model complexity 
 norm_groups = 32                            # Granularity of normalization, impacting convergence
 channel_mults = (1, 2, 4, 8, 8)
@@ -51,9 +51,9 @@ denoise_fn = UNet(
 
 # # Define diffusion model parameters
 image_size = (512, 512)     # Resized image size
-channels = 3              
+channels = 1             
 loss_type = 'l1'
-conditional = True        # Currently, the implementation only works conditional
+conditional = True          # Currently, the implementation only works conditional
 
 # # Noise Schedule from: https://arxiv.org/pdf/2306.01875.pdf
 config_diff = {
@@ -84,7 +84,7 @@ print('STATUS --- Model loaded on device:', device)
 # # **************************************
 
 # Embedding Spectrogram 
-embedding_ggm = EmbeddingGGM()
+embedding_gaf = EmbeddingGAF()
 
 # Load Clean and Noisy Slices
 with open('slices_clean.pkl', 'rb') as f:
@@ -94,13 +94,12 @@ with open ('slices_noisy.pkl', 'rb') as f:
     slices_noisy = pickle.load(f)
 
 # Larger K means less data...
-x_in_train, x_in_test = embedding_ggm.build_ggm_data(clean_slices= slices_clean, noisy_slices=slices_noisy,k=4000)
+x_in_train, x_in_test = embedding_gaf.build_gaf_data(clean_slices= slices_clean, noisy_slices=slices_noisy,k=4000)
 print('Size of x_in_train', len(x_in_train))
 print('Size of x_in_test', len(x_in_test))
 
 # Copy
 x_in_train_original = x_in_train; x_in_test_original = x_in_test
-
 
 # # **************************************
 # # STEP 2: TRANING
@@ -130,8 +129,8 @@ formatted_time = f"{hour}h{minute:02d}"  # :02d ensures that minutes are display
 print(formatted_time)  # Output will be something like: 14h11
 
 # SAVE THE MODELS
-save_model_diff = 'diff_model_ggm' + str(formatted_time) + '.pth'
-save_model_dn = 'dn_model_ggm' + str(formatted_time) + '.pth'
+save_model_diff = 'diff_model_gaf' + str(formatted_time) + '.pth'
+save_model_dn = 'dn_model_gaf' + str(formatted_time) + '.pth'
 
 
 # Train model...
@@ -294,7 +293,7 @@ names = ['Original HR', 'Original SR', 'Sampled Image']
 visualize_tensor(image_tensors,names)
 
 # Save the sampled_tensor as a pickle file... 
-with open('sampled_tensor_ggm.pkl','wb') as f:
+with open('sampled_tensor_gaf.pkl','wb') as f:
     pickle.dump(sampled_tensor, f)
         
     #  TODO:
