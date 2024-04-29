@@ -13,7 +13,7 @@ from diffusion import GaussianDiffusion
 from unet_SR3 import UNet
 
 ## Embeddings
-from embeddings.embedding_spec import EmbeddingSpec
+from embedding_spec import EmbeddingSpec
 
 
 

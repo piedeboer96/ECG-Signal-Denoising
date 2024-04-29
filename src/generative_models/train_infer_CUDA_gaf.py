@@ -17,7 +17,7 @@ from embedding_gaf import EmbeddingGAF
 
 # # Check if CUDA is available
 # device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-device = 'cpu'
+device = 'cuda'
 
 # # *************************
 # # STEP 1: MODELS 
@@ -93,12 +93,17 @@ with open('slices_clean.pkl', 'rb') as f:
 with open ('slices_noisy.pkl', 'rb') as f:
     slices_noisy = pickle.load(f)
 
+
+
 # Larger K means less data...
-x_in_train, x_in_test = embedding_gaf.build_gaf_data(clean_slices= slices_clean, noisy_slices=slices_noisy,k=200)
+x_in_train, x_in_test = embedding_gaf.build_gaf_data(clean_slices= slices_clean, noisy_slices=slices_noisy,k=1500)
 print('Size of x_in_train', len(x_in_train))
 print('Size of x_in_test', len(x_in_test))
 
-print('Shape...')
+
+del slices_noisy
+del slices_clean
+
 # print(x_in_train['SR'][0].shape)
 # print(x_in_train['SR'][0].dtype)
 # embedding_gaf.visualize_tensor(x_in_train['HR'][0])
@@ -106,7 +111,7 @@ print('Shape...')
 
 
 # Copy
-x_in_train_original = x_in_train; x_in_test_original = x_in_test
+
 
 # # **************************************
 # # STEP 2: TRANING
@@ -116,7 +121,7 @@ x_in_train_original = x_in_train; x_in_test_original = x_in_test
 config_train = {            ## check this...
     'feats':40,
     'epochs':1,
-    'batch_size':1,
+    'batch_size':2,
     'lr':1.0e-3
 }
 
@@ -133,7 +138,6 @@ print(formatted_time)  # Output will be something like: 14h11
 # SAVE
 save_model_diff = 'diff_model_gaf' + str(formatted_time) + '.pth'
 save_model_dn = 'dn_model_gaf' + str(formatted_time) + '.pth'
-
 
 # Training
 if train_model == 1: 
@@ -237,8 +241,8 @@ device = inference_device
 
 # Load a trained denoiser...
 denoise_fun = UNet(
-    in_channel=6,
-    out_channel=3,
+    in_channel=2,
+    out_channel=1,
     inner_channel=inner_channels,
     norm_groups=norm_groups,
     channel_mults=channel_mults,

@@ -79,11 +79,8 @@ class EmbeddingGAF:
 
     def build_gaf_data(self, clean_slices, noisy_slices, k):
 
-        # Display Info
-        num_of_slices = len(clean_slices); print('Number of slices',num_of_slices)
-        len_of_slice = len(noisy_slices);  print('Length of slice', len_of_slice)
-
-        # SMALL
+        num_of_slices = len(clean_slices)
+        
         print('k', k)
         num_of_slices_small = int(num_of_slices/k)
         print('Number of slices',num_of_slices_small)
@@ -140,8 +137,8 @@ class EmbeddingGAF:
             gafs_clean, gafs_noisy, test_size=0.2, random_state=42)
 
         # Create datasets for training and validation
-        # train_dataset = gafdataset(gafs_clean_train, gafs_noisy_train)
-        # val_dataset = gafdataset(gafs_clean_val, gafs_noisy_val)
+        train_dataset = gafdataset(gafs_clean_train, gafs_noisy_train)
+        val_dataset = gafdataset(gafs_clean_val, gafs_noisy_val)
 
         # Adapt to SR3 format
         x_in_train = {'HR': gafs_clean_train, 'SR': gafs_noisy_train}
