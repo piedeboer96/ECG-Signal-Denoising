@@ -24,7 +24,7 @@ device = 'cpu'
 # # *************************
    
 # Define parameters of the U-Net (denoising function)
-in_channels = 2                         # 2x RGB 'concat'
+in_channels = 1*2                        
 out_channels = 1                        # Output will also be GrayScale
 inner_channels = 32                     # Depth feature maps, model complexity 
 norm_groups = 32                            # Granularity of normalization, impacting convergence
@@ -94,9 +94,16 @@ with open ('slices_noisy.pkl', 'rb') as f:
     slices_noisy = pickle.load(f)
 
 # Larger K means less data...
-x_in_train, x_in_test = embedding_gaf.build_gaf_data(clean_slices= slices_clean, noisy_slices=slices_noisy,k=4000)
+x_in_train, x_in_test = embedding_gaf.build_gaf_data(clean_slices= slices_clean, noisy_slices=slices_noisy,k=200)
 print('Size of x_in_train', len(x_in_train))
 print('Size of x_in_test', len(x_in_test))
+
+print('Shape...')
+# print(x_in_train['SR'][0].shape)
+# print(x_in_train['SR'][0].dtype)
+# embedding_gaf.visualize_tensor(x_in_train['HR'][0])
+# embedding_gaf.visualize_tensor(x_in_train['SR'][0])
+
 
 # Copy
 x_in_train_original = x_in_train; x_in_test_original = x_in_test
@@ -116,24 +123,19 @@ config_train = {            ## check this...
 train_model = 1
 save_model = 1
 
-# Get current timestamp
+# TIMESTAMP
 current_time = datetime.now()
-
-# Extract hour and minute from the timestamp
 hour = current_time.hour
 minute = current_time.minute
-
-# Format hour and minute in the desired format
 formatted_time = f"{hour}h{minute:02d}"  # :02d ensures that minutes are displayed with leading zero if less than 10
-
 print(formatted_time)  # Output will be something like: 14h11
 
-# SAVE THE MODELS
+# SAVE
 save_model_diff = 'diff_model_gaf' + str(formatted_time) + '.pth'
 save_model_dn = 'dn_model_gaf' + str(formatted_time) + '.pth'
 
 
-# Train model...
+# Training
 if train_model == 1: 
 
     # Define custom dataset class

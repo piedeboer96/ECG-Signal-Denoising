@@ -109,6 +109,7 @@ class EmbeddingGAF:
             #######
             gafs_clean.append(gaf_clean)
             gafs_noisy.append(gaf_noisy)
+        
 
         # float.32 for SR3 model
         gafs_clean = [tensor.float() for tensor in gafs_clean]  # float.64 --> float.32
@@ -139,8 +140,8 @@ class EmbeddingGAF:
             gafs_clean, gafs_noisy, test_size=0.2, random_state=42)
 
         # Create datasets for training and validation
-        train_dataset = gafdataset(gafs_clean_train, gafs_noisy_train)
-        val_dataset = gafdataset(gafs_clean_val, gafs_noisy_val)
+        # train_dataset = gafdataset(gafs_clean_train, gafs_noisy_train)
+        # val_dataset = gafdataset(gafs_clean_val, gafs_noisy_val)
 
         # Adapt to SR3 format
         x_in_train = {'HR': gafs_clean_train, 'SR': gafs_noisy_train}
