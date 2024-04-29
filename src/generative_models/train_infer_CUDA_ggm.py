@@ -18,7 +18,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 # # STEP 1: MODELS 
 # # *************************
    
-# # # Define parameters of the U-Net (denoising function)
+# Define parameters of the U-Net (denoising function)
 in_channels = 6                       # 2x RGB 'concat'
 out_channels = 3                        # Output will also be GrayScale
 inner_channels = 32                     # Depth feature maps, model complexity 
