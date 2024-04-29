@@ -266,6 +266,12 @@ if save_model ==  1:
 
 print('Status: Inference Time...')
 
+inference_device = 'cpu'
+device = inference_device
+
+print('Inference device', device)
+
+
 # Load a trained denoiser...
 denoise_fun = UNet(
     in_channel=2,
@@ -322,4 +328,14 @@ names = ['Original HR', 'Original SR', 'Sampled Image']
 
 # Visualize Results
 visualize_tensor(image_tensors,names)
+
+
+# Save the sampled_tensor as a pickle file... 
+with open('sampled_tensor.pkl','wb') as f:
+    pickle.dump(sampled_tensor, f)
+    
+    #  TODO:
+    # - sav.dump(sampled_tensor, f)
+
+
 
