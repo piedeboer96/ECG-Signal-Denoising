@@ -17,7 +17,7 @@ from embedding_gaf import EmbeddingGAF
 
 # # Check if CUDA is available
 # device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-device = 'cuda'
+device = 'cpu'
 
 # # *************************
 # # STEP 1: MODELS 
@@ -27,13 +27,13 @@ device = 'cuda'
 in_channels = 1*2                        
 out_channels = 1                        # Output will also be GrayScale
 inner_channels = 32                     # Depth feature maps, model complexity 
-norm_groups = 32                            # Granularity of normalization, impacting convergence
+norm_groups = 32                        # Granularity of normalization, impacting convergence
 channel_mults = (1, 2, 4, 8, 8)
 attn_res = [8]
 res_blocks = 3
 dropout = 0
 with_noise_level_emb = True
-image_size = 512
+image_size = 128
 
 # # Instantiate the UNet model
 denoise_fn = UNet(
@@ -50,7 +50,7 @@ denoise_fn = UNet(
 )
 
 # # Define diffusion model parameters
-image_size = (512, 512)     # Resized image size
+image_size = (128, 128)     # Resized image size
 channels = 1             
 loss_type = 'l1'
 conditional = True          # Currently, the implementation only works conditional
@@ -86,31 +86,28 @@ print('STATUS --- Model loaded on device:', device)
 # Embedding Spectrogram 
 embedding_gaf = EmbeddingGAF()
 
+
+
 # Load Clean and Noisy Slices
-with open('slices_clean.pkl', 'rb') as f:
+with open('slices_clean_fs_128.pkl', 'rb') as f:
     slices_clean = pickle.load(f)
 
-with open ('slices_noisy.pkl', 'rb') as f:
+with open ('slices_noisy_EM_snr_3_fs_128.pkl', 'rb') as f:
     slices_noisy = pickle.load(f)
 
 
 
 # Larger K means less data...
-x_in_train, x_in_test = embedding_gaf.build_gaf_data(clean_slices= slices_clean, noisy_slices=slices_noisy,k=1500)
+x_in_train, x_in_test = embedding_gaf.build_gaf_data(clean_slices= slices_clean, noisy_slices=slices_noisy,k=1)
 print('Size of x_in_train', len(x_in_train))
 print('Size of x_in_test', len(x_in_test))
-
 
 del slices_noisy
 del slices_clean
 
-# print(x_in_train['SR'][0].shape)
-# print(x_in_train['SR'][0].dtype)
-# embedding_gaf.visualize_tensor(x_in_train['HR'][0])
-# embedding_gaf.visualize_tensor(x_in_train['SR'][0])
 
-
-# Copy
+embedding_gaf.visualize_tensor(x_in_train['HR'][0])
+embedding_gaf.visualize_tensor(x_in_train['SR'][0])
 
 
 # # **************************************
@@ -120,10 +117,10 @@ del slices_clean
 # Training Config
 config_train = {            ## check this...
     'feats':40,
-    'epochs':1,
+    'epochs':5,
     'batch_size':2,
     'lr':1.0e-3
-}
+}    
 
 train_model = 1
 save_model = 1
@@ -139,10 +136,10 @@ print(formatted_time)  # Output will be something like: 14h11
 save_model_diff = 'diff_model_gaf' + str(formatted_time) + '.pth'
 save_model_dn = 'dn_model_gaf' + str(formatted_time) + '.pth'
 
-# Training
+    # Training
 if train_model == 1: 
 
-    # Define custom dataset class
+        # Define custom dataset class
     class DictDataset(Dataset):
         def __init__(self, data_dict):
             self.data_dict = data_dict
@@ -154,7 +151,7 @@ if train_model == 1:
         def __getitem__(self, index):
             return {k: v[index] for k, v in self.data_dict.items()}
 
-    # Training Configuration
+        # Training Configuration
     feats = config_train['feats']
     epochs = config_train['epochs']
     batch_size = config_train['batch_size']
@@ -182,7 +179,7 @@ if train_model == 1:
     for epoch in range(epochs):
         model.train()
         total_loss = 0.0
-        
+            
         # Create tqdm progress bar
         pbar = tqdm(train_loader, desc=f"Epoch {epoch+1}/{epochs}", unit="batch")
 
@@ -208,7 +205,7 @@ if train_model == 1:
             # Update progress bar description with current loss
             pbar.set_postfix({'Loss': loss.item()})
 
-        # Calculate average loss for the epoch
+            # Calculate average loss for the epoch
         avg_loss = total_loss / len(train_loader)
 
         # Check if current model is the best so far
@@ -218,10 +215,11 @@ if train_model == 1:
 
         # Print progress
         print(f"Epoch [{epoch+1}/{epochs}], Avg Loss: {avg_loss:.4f}")
+            
 
-# Save model...  
+    # Save model...  
 if save_model ==  1: 
-   
+    
     print('Status: Saving Models')
 
     # Save diffusion model (model)
@@ -230,6 +228,7 @@ if save_model ==  1:
     # Save denoising model (UNet) (denoise_fn)
     torch.save(model.denoise_fn.state_dict(), save_model_dn)
 
+    
 # *************************************************
 # Step 4: Inference (or continue training)
 
@@ -250,57 +249,24 @@ denoise_fun = UNet(
     res_blocks=res_blocks,
     dropout=dropout,
     with_noise_level_emb=with_noise_level_emb,
-    image_size=512
+    image_size=128
 ).to(device)  # Move the denoising model to the GPU if available
 
 denoise_fun.load_state_dict(torch.load(save_model_dn, map_location=device))
 denoise_fun.eval()
 
-diffusion = GaussianDiffusion(denoise_fun, image_size=(512,512),channels=1,loss_type='l1',conditional=True,config_diff=config_diff).to(device)  # Move the diffusion model to the GPU if available
+diffusion = GaussianDiffusion(denoise_fun, image_size=(128,128),channels=1,loss_type='l1',conditional=True,config_diff=config_diff).to(device)  # Move the diffusion model to the GPU if available
 diffusion.load_state_dict(torch.load(save_model_diff, map_location=device))
 
 print('Status: Diffusion and denoising model loaded successfully')
-
-def visualize_tensor(image_tensors, titles=None):
-        num_images = len(image_tensors)
-
-        # Check if titles are provided and if their number matches the number of images
-        if titles is not None and len(titles) != num_images:
-            print("Error: Number of titles does not match the number of images.")
-            return
-
-        # Create subplots based on the number of images
-        fig, axes = plt.subplots(1, num_images, figsize=(15, 5))
-
-        # Iterate over images and titles to plot them
-        for i, (image_tensor, title) in enumerate(zip(image_tensors, titles)):
-            ax = axes[i] if num_images > 1 else axes  # Use appropriate subplot
-            ax.axis('off')  # Hide axes
-            ax.set_title(title) if title else None  # Set subplot title if provided
-            image_np = image_tensor.permute(1, 2, 0).cpu().numpy()  # Convert tensor to numpy array
-            if len(image_np.shape) == 2:  # If grayscale
-                ax.imshow(image_np, cmap='gray')
-            else:  # If RGB
-                ax.imshow(image_np)
-
-        plt.show()
-
-    # Sample Tensor
 
 idx_sampled = 0
 
 sampled_tensor = diffusion.p_sample_loop_single(x_in_train['SR'][idx_sampled])
 sampled_tensor = sampled_tensor.unsqueeze(0)
 
-image_tensors= [x_in_train_original['HR'][idx_sampled],x_in_train_original['SR'][idx_sampled],sampled_tensor ]
-names = ['Original HR', 'Original SR', 'Sampled Image'] 
-
-# Visualize Results
-visualize_tensor(image_tensors,names)
-
 # Save the sampled_tensor as a pickle file... 
-with open('sampled_tensor_gaf.pkl','wb') as f:
+save_tensor_sample = 'sampled_tensor_CPU' + str(formatted_time)
+with open(save_tensor_sample,'wb') as f:
     pickle.dump(sampled_tensor, f)
-        
-    #  TODO:
-     # - sav.dump(sampled_tensor, f)
+

@@ -36,6 +36,8 @@ class EmbeddingGAF:
         return X_rescaled
 
     def ecg_to_GAF(self, X):
+        
+        X = X[:128]         # dirty
 
         # Rescale
         X = self.rescale_time_series(X)
@@ -51,6 +53,9 @@ class EmbeddingGAF:
         # Return Tensor (1,x,x) for GASF
         x = torch.tensor(GASF).unsqueeze(0)
 
+        # print('GAF life...')
+        # print(x.shape)
+
         return x
 
     # Reconstruct
@@ -64,6 +69,7 @@ class EmbeddingGAF:
         return diagonals
 
     def visualize_tensor(self,tensor):
+        
         print('Shape', tensor.shape)
 
         # Convert the tensor to a NumPy array
@@ -90,7 +96,7 @@ class EmbeddingGAF:
         gafs_noisy = []
 
         # Parameters
-        sampto=512
+        sampto=128
 
         # Build gaf Embeddings
         for i in tqdm(range(num_of_slices_small)):  # NOTE : small 
@@ -145,3 +151,5 @@ class EmbeddingGAF:
         x_in_test = {'HR': gafs_clean_val, 'SR': gafs_noisy_val}
 
         return x_in_train, x_in_test
+
+    # def build_raw_data()
