@@ -2,6 +2,7 @@ venv/
 datasets/
 data/
 saved_models/
+*.dat
 *.pkl
 *.pth
 *.pickle
