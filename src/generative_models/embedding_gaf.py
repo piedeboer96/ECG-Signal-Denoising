@@ -83,73 +83,17 @@ class EmbeddingGAF:
         plt.axis('off')  # Turn off axis
         plt.show()
 
-    def build_gaf_data(self, clean_slices, noisy_slices, k):
-
-        num_of_slices = len(clean_slices)
+    def plot_multiple_timeseries(signals, names):
+        num_signals = len(signals)
         
-        print('k', k)
-        num_of_slices_small = int(num_of_slices/k)
-        print('Number of slices',num_of_slices_small)
+        plt.figure(figsize=(5 * num_signals, 4))
 
-        # gaftrograms
-        gafs_clean = []
-        gafs_noisy = []
+        for i, (signal, name) in enumerate(zip(signals, names), 1):
+            plt.subplot(1, num_signals, i)
+            plt.plot(signal)
+            plt.title(name)
+            plt.xlabel('Sample')
+            plt.ylabel('Amplitude')
 
-        # Parameters
-        sampto=128
-
-        # Build gaf Embeddings
-        for i in tqdm(range(num_of_slices_small)):  # NOTE : small 
-
-            #######
-            ecg_clean =  clean_slices[i][:sampto]
-            ecg_noisy_EM = noisy_slices[i][:sampto]
-            
-            #######
-            gaf_clean = self.ecg_to_GAF(ecg_clean)
-            gaf_noisy = self.ecg_to_GAF(ecg_noisy_EM)
-
-            #######
-            gafs_clean.append(gaf_clean)
-            gafs_noisy.append(gaf_noisy)
-        
-
-        # float.32 for SR3 model
-        gafs_clean = [tensor.float() for tensor in gafs_clean]  # float.64 --> float.32
-        gafs_noisy = [tensor.float() for tensor in gafs_noisy]
-
-        # Define a custom PyTorch dataset 
-        class gafdataset(Dataset):
-            def __init__(self, gafs_clean, gafs_noisy, transform=None):
-                self.gafs_clean = gafs_clean
-                self.gafs_noisy = gafs_noisy
-                self.transform = transform
-
-            def __len__(self):
-                return len(self.gafs_clean)
-
-            def __getitem__(self, idx):
-                gaf_clean = self.gafs_clean[idx]
-                gaf_noisy = self.gafs_noisy[idx]
-
-                if self.transform:
-                    gaf_clean = self.transform(gaf_clean)
-                    gaf_noisy = self.transform(gaf_noisy)
-
-                return gaf_clean, gaf_noisy
-
-        # Split the data into training and validation sets
-        gafs_clean_train, gafs_clean_val, gafs_noisy_train, gafs_noisy_val = train_test_split(
-            gafs_clean, gafs_noisy, test_size=0.2, random_state=42)
-
-        # Create datasets for training and validation
-        train_dataset = gafdataset(gafs_clean_train, gafs_noisy_train)
-        val_dataset = gafdataset(gafs_clean_val, gafs_noisy_val)
-
-        # Adapt to SR3 format
-        x_in_train = {'HR': gafs_clean_train, 'SR': gafs_noisy_train}
-        x_in_test = {'HR': gafs_clean_val, 'SR': gafs_noisy_val}
-
-        return x_in_train, x_in_test
-
-    # def build_raw_data()
+        plt.tight_layout()
+        plt.show()

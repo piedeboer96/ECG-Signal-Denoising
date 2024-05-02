@@ -4,29 +4,29 @@ import pickle
 
 from embedding_gaf import EmbeddingGAF
 
-tensor_pickle_path = 'src/generative_models/sampled_tensor_gaf_cuda_9h35.pkl'
+# tensor_pickle_path = 'src/generative_models/sampled_tensor_gaf_cuda_9h35.pkl'
 
-with open('src/generative_models/clean_slices_270_samples.pkl', 'rb') as f:
-    clean_slices = pickle.load(f)
+# with open('src/generative_models/clean_slices_270_samples.pkl', 'rb') as f:
+#     clean_slices = pickle.load(f)
 
-with open('/Users/piedeboer/Desktop/Thesis/code/signal-denoising/src/generative_models/noisy_sllices_270_samples.pkl', 'rb') as f:
-    noisy_slices = pickle.load(f)
+# with open('/Users/piedeboer/Desktop/Thesis/code/signal-denoising/src/generative_models/noisy_sllices_270_samples.pkl', 'rb') as f:
+#     noisy_slices = pickle.load(f)
 
-# clean_slices[0]
-# noisy_slices[4]
+# # clean_slices[0]
+# # noisy_slices[4]
 
-embedding_gaf = EmbeddingGAF()
+# embedding_gaf = EmbeddingGAF()
 
-gaf_SR = embedding_gaf.ecg_to_GAF(clean_slices[0])
-gaf_HR = embedding_gaf.ecg_to_GAF(noisy_slices[0])
-
-# Load the tensor from the pickle file
-with open(tensor_pickle_path, 'rb') as f:
-    tensor_data = pickle.load(f)
+# gaf_SR = embedding_gaf.ecg_to_GAF(clean_slices[0])
+# gaf_HR = embedding_gaf.ecg_to_GAF(noisy_slices[0])
 
 # # Load the tensor from the pickle file
 # with open(tensor_pickle_path, 'rb') as f:
 #     tensor_data = pickle.load(f)
+
+# # # Load the tensor from the pickle file
+# # with open(tensor_pickle_path, 'rb') as f:
+# #     tensor_data = pickle.load(f)
 
 def visualize_tensor(tensor):
     print('Shape', tensor.shape)
@@ -42,8 +42,12 @@ def visualize_tensor(tensor):
     plt.axis('off')  # Turn off axis
     plt.show()
 
-visualize_tensor(gaf_HR)
-visualize_tensor(gaf_SR)
+with open('gaf_sampled_13h16', 'rb') as f:
+    tensor_data = pickle.load(f)
+
+
+# visualize_tensor(gaf_HR)
+# visualize_tensor(gaf_SR)
 visualize_tensor(tensor_data)
 
 
