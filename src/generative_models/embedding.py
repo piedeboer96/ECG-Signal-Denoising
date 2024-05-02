@@ -6,6 +6,25 @@ from tqdm import tqdm  # Corrected import statement
 from pyts.image import MarkovTransitionField
 from torch.utils.data import Dataset, DataLoader
 from sklearn.model_selection import train_test_split
+from pyts.image import GramianAngularField, MarkovTransitionField
+
+# Further Reading...
+class EmbeddingGGM:
+    def __init__(self):
+        pass
+
+    def ecg_to_GGM(self,x):
+        x = x[:128]
+        x = np.array([x])
+        gasf = GramianAngularField(method='summation')
+        x_gasf = gasf.transform(x)
+        gadf = GramianAngularField(method='difference')
+        x_gadf = gadf.transform(x)
+        mtf = MarkovTransitionField()
+        x_mtf = mtf.transform(x)
+        x_ggm = np.concatenate((x_gasf,x_gadf,x_mtf))
+        x_ggm_tensor = torch.tensor(x_ggm)
+        return x_ggm_tensor
 
 # Further Reading: 
 #       https://medium.com/analytics-vidhya/encoding-time-series-as-images-b043becbdbf3
@@ -53,8 +72,8 @@ class EmbeddingGAF:
         # Return Tensor (1,x,x) for GASF
         x = torch.tensor(GASF).unsqueeze(0)
 
-        # print('GAF life...')
-        # print(x.shape)
+        print('GAF life...')
+        print(x.shape)
 
         return x
 

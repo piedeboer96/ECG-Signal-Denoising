@@ -256,9 +256,6 @@ class GaussianDiffusion(nn.Module):
    
     def p_losses(self, x_in, noise=None):
         x_start = x_in['HR']
-
-        print('x_start', x_start.shape)
-
         [b, c, h, w] = x_start.shape
         t = np.random.randint(1, self.num_timesteps + 1)
         continuous_sqrt_alpha_cumprod = torch.FloatTensor(

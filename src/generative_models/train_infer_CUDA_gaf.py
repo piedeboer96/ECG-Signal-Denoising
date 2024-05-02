@@ -8,8 +8,8 @@ from sklearn.model_selection import train_test_split
 from datetime import datetime
 
 from diffusion import GaussianDiffusion
-from unet_SR3 import UNet
-from embedding_gaf import EmbeddingGAF
+from unet import UNet
+from embedding import EmbeddingGAF
 
 # CPU/CUDA
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -97,7 +97,7 @@ class mijnDataset(Dataset):
 embedding_gaf = EmbeddingGAF()
 
 # Take subsets for x slices (life is not perfect)
-subset_size = 2500
+subset_size = 50
 for i in range(0, 55000, subset_size):
     
     # Device (return to CUDA after inference if available)
@@ -276,7 +276,7 @@ for i in range(0, 55000, subset_size):
     sampled_tensor = sampled_tensor.unsqueeze(0)
 
     # Save the sampled_tensor as a pickle file... 
-    save_tensor_sample = 'gaf_sampled_' + str(formatted_time)
+    save_tensor_sample = 'gaf_sampled_' + str(formatted_time) + '.pkl'
     with open(save_tensor_sample,'wb') as f:
         pickle.dump(sampled_tensor, f)
 
