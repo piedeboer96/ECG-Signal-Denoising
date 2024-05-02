@@ -97,7 +97,8 @@ class mijnDataset(Dataset):
 embedding_gaf = EmbeddingGAF()
 
 # Take subsets for x slices (life is not perfect)
-for i in range(0, 55000, 100):
+subset_size = 2500
+for i in range(0, 55000, subset_size):
     
     # Device (return to CUDA after inference if available)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -114,7 +115,7 @@ for i in range(0, 55000, 100):
     # LOAD SUBSET SLICES
     with open('ardb_slices_clean.pkl', 'rb') as f:
         clean_signals = pickle.load(f)
-    clean_signals_subset = clean_signals[i:i+100]
+    clean_signals_subset = clean_signals[i:i+subset_size]
     
     gaf_HR = embedding_gaf.ecg_to_GAF(clean_signals[57000][:128])
     
@@ -125,7 +126,7 @@ for i in range(0, 55000, 100):
 
     gaf_SR = embedding_gaf.ecg_to_GAF(noisy_signals[57000][:128])
 
-    noisy_signals_subset= noisy_signals[i:i+100]
+    noisy_signals_subset= noisy_signals[i:i+subset_size]
 
     del noisy_signals       # REMOVE FROM MEMORY
 
@@ -167,7 +168,7 @@ for i in range(0, 55000, 100):
     # # **************************************
 
     # Example DataLoader creation
-    batch_size = 2
+    batch_size = 8
     num_workers = 0  # Set according to your system capabilities
     shuffle = True
     # Use the embedded data for training
@@ -175,10 +176,10 @@ for i in range(0, 55000, 100):
                             batch_size=batch_size, num_workers=num_workers, shuffle=shuffle)
 
     # Define your optimizer
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
 
     # Set up your training loop
-    num_epochs = 1
+    num_epochs = 5
 
     # Initialize best_loss and best_model_state_dict
     best_loss = float('inf')

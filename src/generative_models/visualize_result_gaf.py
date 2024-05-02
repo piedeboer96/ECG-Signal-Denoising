@@ -42,7 +42,7 @@ def visualize_tensor(tensor):
     plt.axis('off')  # Turn off axis
     plt.show()
 
-with open('gaf_sampled_13h16', 'rb') as f:
+with open('gaf_sampled_12h24', 'rb') as f:
     tensor_data = pickle.load(f)
 
 
