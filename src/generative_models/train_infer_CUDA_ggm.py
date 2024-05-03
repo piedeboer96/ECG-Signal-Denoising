@@ -98,7 +98,7 @@ class mijnDataset(Dataset):
 embedding_ggm = EmbeddingGGM()
 
 # Take subsets for x slices (life is not perfect)
-subset_size = 500
+subset_size = 2500
 for i in range(0, 55000, subset_size):
     
     # Device (return to CUDA after inference if available)
@@ -146,6 +146,9 @@ for i in range(0, 55000, subset_size):
     
     # Iterate through the dataset to embed each sample
     for clean_signal, noisy_signal in dataset:
+        print('Clean signal...')
+        print(type(clean_signal))
+        print(clean_signal.shape)
         clean_ggm = embedding_ggm.ecg_to_GGM(clean_signal)
         noisy_ggm = embedding_ggm.ecg_to_GGM(noisy_signal)
 
@@ -177,7 +180,7 @@ for i in range(0, 55000, subset_size):
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
 
     # Set up your training loop
-    num_epochs = 1
+    num_epochs = 3
 
     # Initialize best_loss and best_model_state_dict
     best_loss = float('inf')

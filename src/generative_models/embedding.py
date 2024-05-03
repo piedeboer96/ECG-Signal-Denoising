@@ -13,19 +13,38 @@ class EmbeddingGGM:
     def __init__(self):
         pass
 
-    def ecg_to_GGM(self,x):
-        x = x[:128]
-        x = np.array([x])
+    def ecg_to_GGM(self, x):
+
+
+        if isinstance(x, np.ndarray):
+            # Code to execute if x is a NumPy array
+            x = x[:128]
+            x = np.array([x])
+        else:  
+            x_np = x.cpu().detach().numpy()
+            x = x_np[:128]
+            x = np.array([x])
+                
         gasf = GramianAngularField(method='summation')
         x_gasf = gasf.transform(x)
         gadf = GramianAngularField(method='difference')
         x_gadf = gadf.transform(x)
         mtf = MarkovTransitionField()
         x_mtf = mtf.transform(x)
-        x_ggm = np.concatenate((x_gasf,x_gadf,x_mtf))
-        x_ggm_tensor = torch.tensor(x_ggm)
-        return x_ggm_tensor
+        x_ggm = np.concatenate((x_gasf, x_gadf, x_mtf))
 
+        # Convert numpy array to a PyTorch tensor
+        x_ggm_tensor = torch.tensor(x_ggm)
+
+        # Move tensor to CUDA if available
+        if torch.cuda.is_available():
+            x_ggm_tensor = x_ggm_tensor.cuda()
+
+        # Detach tensor before returning
+        if x_ggm_tensor.is_cuda:
+            x_ggm_tensor = x_ggm_tensor.detach()
+
+        return x_ggm_tensor
 # Further Reading: 
 #       https://medium.com/analytics-vidhya/encoding-time-series-as-images-b043becbdbf3
 class EmbeddingGAF:
