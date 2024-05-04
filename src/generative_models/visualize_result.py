@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pickle
 
-from embedding import EmbeddingGAF
+from embedding import EmbeddingGAF, EmbeddingGGM
 
 def visualize_tensor(tensor):
     print('Shape', tensor.shape)
@@ -18,7 +18,7 @@ def visualize_tensor(tensor):
     plt.axis('off')  # Turn off axis
     plt.show()
 
-with open('ggm_sampled_16h30', 'rb') as f:
+with open('ggm_sampled_13h39.pkl', 'rb') as f:
     tensor_data = pickle.load(f)
 
 tensor_data = tensor_data.squeeze(0)

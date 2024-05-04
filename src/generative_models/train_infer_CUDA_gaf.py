@@ -97,7 +97,7 @@ class mijnDataset(Dataset):
 embedding_gaf = EmbeddingGAF()
 
 # Take subsets for x slices (life is not perfect)
-subset_size = 50
+subset_size = 500
 for i in range(0, 55000, subset_size):
     
     # Device (return to CUDA after inference if available)
@@ -168,7 +168,7 @@ for i in range(0, 55000, subset_size):
     # # **************************************
 
     # Example DataLoader creation
-    batch_size = 8
+    batch_size = 4
     num_workers = 0  # Set according to your system capabilities
     shuffle = True
     # Use the embedded data for training
@@ -179,8 +179,8 @@ for i in range(0, 55000, subset_size):
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
 
     # Set up your training loop
-    num_epochs = 5
-
+    num_epochs = 1
+    
     # Initialize best_loss and best_model_state_dict
     best_loss = float('inf')
     best_model_state_dict = None
