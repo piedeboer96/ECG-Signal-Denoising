@@ -91,8 +91,8 @@ class EmbeddingGAF:
         # Return Tensor (1,x,x) for GASF
         x = torch.tensor(GASF).unsqueeze(0)
 
-        print('GAF life...')
-        print(x.shape)
+        #print('GAF life...')
+        #print(x.shape)
 
         return x
 

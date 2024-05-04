@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pickle
 
-from embedding import EmbeddingGAF
+from embedding import EmbeddingGAF, EmbeddingGGM
 
 def visualize_tensor(tensor):
     print('Shape', tensor.shape)
@@ -18,8 +18,8 @@ def visualize_tensor(tensor):
     plt.axis('off')  # Turn off axis
     plt.show()
 
-with open('src\generative_models\ggm_sampled_13h39.pkl', 'rb') as f:
-    tensor_data_ggm = pickle.load(f)
+with open('ggm_sampled_16h30', 'rb') as f:
+    tensor_data = pickle.load(f)
 
 with open('src\generative_models\gaf_sampled_14h48.pkl', 'rb') as f:
     tensor_data_gaf = pickle.load(f)
@@ -52,4 +52,4 @@ ts_gaf = embedding_gaf.GAF_to_ecg(tensor_data_gaf)
 
 print(ts_gaf.shape)
 
-plot_multiple_timeseries([ts_gaf], [' Recon'])
+plot_multiple_timeseries([time_series], [' Recon'])
