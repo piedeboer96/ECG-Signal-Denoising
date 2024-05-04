@@ -18,12 +18,17 @@ def visualize_tensor(tensor):
     plt.axis('off')  # Turn off axis
     plt.show()
 
-with open('ggm_sampled_16h30', 'rb') as f:
-    tensor_data = pickle.load(f)
+with open('src\generative_models\ggm_sampled_13h39.pkl', 'rb') as f:
+    tensor_data_ggm = pickle.load(f)
 
-tensor_data = tensor_data.squeeze(0)
-visualize_tensor(tensor_data)
+with open('src\generative_models\gaf_sampled_14h48.pkl', 'rb') as f:
+    tensor_data_gaf = pickle.load(f)
 
+tensor_data_ggm = tensor_data_ggm.squeeze(0)
+visualize_tensor(tensor_data_ggm)
+
+tensor_data_gaf = tensor_data_gaf
+visualize_tensor(tensor_data_gaf)
 
 def plot_multiple_timeseries(signals, names):
     num_signals = len(signals)
@@ -42,8 +47,9 @@ def plot_multiple_timeseries(signals, names):
 
 embedding_gaf = EmbeddingGAF()
 
-time_series = embedding_gaf.GAF_to_ecg(tensor_data)
+ts_ggm = embedding_gaf.GAF_to_ecg(tensor_data_ggm)
+ts_gaf = embedding_gaf.GAF_to_ecg(tensor_data_gaf)
 
-print(time_series.shape)
+print(ts_gaf.shape)
 
-plot_multiple_timeseries([time_series], [' Recon'])
+plot_multiple_timeseries([ts_gaf], [' Recon'])

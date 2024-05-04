@@ -69,9 +69,19 @@ model = GaussianDiffusion(
     config_diff=config_diff
 )
 
+
+
+
+
 # # Move models to the GPU if available
 denoise_fn.to(device)
 model.to(device)
+
+save_model_diff = 'diff_model_gaf14h48.pth'
+save_model_dn =  'dn_model_gaf14h48.pth'
+
+model_state_dict = torch.load(save_model_diff)
+denoise_state_dict = torch.load(save_model_dn)
 
 print('STATUS --- Model loaded on device:', device)
 
@@ -97,7 +107,7 @@ class mijnDataset(Dataset):
 embedding_gaf = EmbeddingGAF()
 
 # Take subsets for x slices (life is not perfect)
-subset_size = 50
+subset_size = 500
 for i in range(0, 55000, subset_size):
     
     # Device (return to CUDA after inference if available)

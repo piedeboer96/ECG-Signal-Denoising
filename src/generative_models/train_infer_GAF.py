@@ -9,7 +9,7 @@ from datetime import datetime
 
 from diffusion import GaussianDiffusion
 from unet import UNet
-from embedding import EmbeddingGGM
+from embedding import EmbeddingGAF
 
 # CPU/CUDA
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -20,8 +20,8 @@ print('Intialize device,', device)
 # # *************************
 
 # Define parameters of the U-Net (denoising function)
-in_channels = 6                        
-out_channels = 3                       # Output will also be GrayScale
+in_channels = 1*2                        
+out_channels = 1                        # Output will also be GrayScale
 inner_channels = 32                     # Depth feature maps, model complexity 
 norm_groups = 32                        # Granularity of normalization, impacting convergence
 channel_mults = (1, 2, 4, 8, 8)
@@ -47,7 +47,7 @@ denoise_fn = UNet(
 
 # # Define diffusion model parameters
 image_size = (128, 128)     # Resized image size
-channels = 3             
+channels = 1             
 loss_type = 'l1'
 conditional = True          # Currently, the implementation only works conditional
 
@@ -91,14 +91,13 @@ class mijnDataset(Dataset):
     def __getitem__(self, index):
         clean_signal = torch.tensor(self.clean_signals[index], dtype=torch.float32)
         noisy_signal = torch.tensor(self.noisy_signals[index], dtype=torch.float32)
-        # Ensure the shape is (3, height, width)
         return clean_signal, noisy_signal
 
 # EMBEDDING 
-embedding_ggm = EmbeddingGGM()
+embedding_gaf = EmbeddingGAF()
 
 # Take subsets for x slices (life is not perfect)
-subset_size = 100
+subset_size = 500
 for i in range(0, 55000, subset_size):
     
     # Device (return to CUDA after inference if available)
@@ -110,22 +109,22 @@ for i in range(0, 55000, subset_size):
     formatted_time = f"{hour}h{minute:02d}"
 
     # SAVE
-    save_model_diff = 'diff_model_ggm' + str(formatted_time) + '.pth'
-    save_model_dn = 'dn_model_ggm' + str(formatted_time) + '.pth'
+    save_model_diff = 'diff_model_gaf' + str(formatted_time) + '.pth'
+    save_model_dn = 'dn_model_gaf' + str(formatted_time) + '.pth'
 
     # LOAD SUBSET SLICES
     with open('ardb_slices_clean.pkl', 'rb') as f:
         clean_signals = pickle.load(f)
     clean_signals_subset = clean_signals[i:i+subset_size]
     
-    ggm_HR = embedding_ggm.ecg_to_GGM(clean_signals[57000][:128])
+    gaf_HR = embedding_gaf.ecg_to_GAF(clean_signals[57000][:128])
     
     del clean_signals       # REMOVE FROM MEMORY
 
     with open('ardb_slices_noisy.pkl', 'rb') as f:
         noisy_signals = pickle.load(f)
 
-    ggm_SR = embedding_ggm.ecg_to_GGM(noisy_signals[57000][:128])
+    gaf_SR = embedding_gaf.ecg_to_GAF(noisy_signals[57000][:128])
 
     noisy_signals_subset= noisy_signals[i:i+subset_size]
 
@@ -143,33 +142,33 @@ for i in range(0, 55000, subset_size):
     # Initialize lists to store embedded clean and noisy batches
     embedded_clean_batches = []
     embedded_noisy_batches = []
-    
+
     # Iterate through the dataset to embed each sample
     for clean_signal, noisy_signal in dataset:
-        #print('Clean signal...')
-        #print(type(clean_signal))
-        #print(clean_signal.shape)
-        clean_ggm = embedding_ggm.ecg_to_GGM(clean_signal)
-        noisy_ggm = embedding_ggm.ecg_to_GGM(noisy_signal)
-
-        # Assuming clean_ggm and noisy_ggm are 2D tensors with shape [height, width]
-        # Add channel dimension with size 1
-        clean_ggm = clean_ggm.unsqueeze(0)  # Adds channel dimension at the beginning
-        noisy_ggm = noisy_ggm.unsqueeze(0)  # Adds channel dimension at the beginning
-
-        embedded_clean_batches.append(clean_ggm)
-        embedded_noisy_batches.append(noisy_ggm)
+        clean_gaf = embedding_gaf.ecg_to_GAF(clean_signal.numpy())
+        noisy_gaf = embedding_gaf.ecg_to_GAF(noisy_signal.numpy())
+        embedded_clean_batches.append(clean_gaf)
+        embedded_noisy_batches.append(noisy_gaf)
 
     # Convert the lists to torch tensors
-    embedded_clean_data = torch.cat(embedded_clean_batches, dim=0)
-    embedded_noisy_data = torch.cat(embedded_noisy_batches, dim=0)
+    embedded_clean_data = torch.cat(embedded_clean_batches)
+    embedded_noisy_data = torch.cat(embedded_noisy_batches)
+
+    # Add a channel dimension to the tensors
+    embedded_clean_data = embedded_clean_data.unsqueeze(1)
+    embedded_noisy_data = embedded_noisy_data.unsqueeze(1)
+
+    # Transfer the data to the device if necessary
+    embedded_clean_data = embedded_clean_data.to(device)
+    embedded_noisy_data = embedded_noisy_data.to(device)
+
 
     # # **************************************
     # # STEP 2: TRANING
     # # **************************************
 
     # Example DataLoader creation
-    batch_size = 4
+    batch_size = 8
     num_workers = 0  # Set according to your system capabilities
     shuffle = True
     # Use the embedded data for training
@@ -180,7 +179,7 @@ for i in range(0, 55000, subset_size):
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
 
     # Set up your training loop
-    num_epochs = 1
+    num_epochs = 5
 
     # Initialize best_loss and best_model_state_dict
     best_loss = float('inf')
@@ -250,8 +249,8 @@ for i in range(0, 55000, subset_size):
 
     # Load a trained denoiser...
     denoise_fun = UNet(
-        in_channel=6,
-        out_channel=3,
+        in_channel=2,
+        out_channel=1,
         inner_channel=inner_channels,
         norm_groups=norm_groups,
         channel_mults=channel_mults,
@@ -265,26 +264,19 @@ for i in range(0, 55000, subset_size):
     denoise_fun.load_state_dict(torch.load(save_model_dn, map_location=device))
     denoise_fun.eval()
 
-    diffusion = GaussianDiffusion(denoise_fun, image_size=(128,128),channels=3,loss_type='l1',conditional=True,config_diff=config_diff).to(device)  # Move the diffusion model to the GPU if available
+    diffusion = GaussianDiffusion(denoise_fun, image_size=(128,128),channels=1,loss_type='l1',conditional=True,config_diff=config_diff).to(device)  # Move the diffusion model to the GPU if available
     diffusion.load_state_dict(torch.load(save_model_diff, map_location=device))
 
     print('Status: Diffusion and denoising model loaded successfully')
     
     # INFERENCE (NOT IN TRAINING SET)
-    # TODO: probably needed to put the GGM on CPU here...
-    print('GGM INFO')
-    print(type(ggm_SR))
-    print('Device ggm_SR', ggm_SR.device)
-    x = ggm_SR.to("cpu")   
-    x = x.to(torch.float32)
-    print('X info', x.device)
-    print(type(x))
-    print(x.dtype)
-    sampled_tensor = diffusion.p_sample_loop_single(x)
+    # TODO: convert gaf_SR to  Input type (double) and bias type (float) should be the same ... float32
+    gaf_SR = gaf_SR.float()
+    sampled_tensor = diffusion.p_sample_loop_single(gaf_SR)
     sampled_tensor = sampled_tensor.unsqueeze(0)
 
     # Save the sampled_tensor as a pickle file... 
-    save_tensor_sample = 'ggm_sampled_' + str(formatted_time) + '.pkl'
+    save_tensor_sample = 'gaf_sampled_' + str(formatted_time) + '.pkl'
     with open(save_tensor_sample,'wb') as f:
         pickle.dump(sampled_tensor, f)
 

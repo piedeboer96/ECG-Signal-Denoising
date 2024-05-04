@@ -1,39 +1,35 @@
 import matplotlib.pyplot as plt
 import torch
 import pickle
-from torch.optim import Adam
 from tqdm import tqdm
 from torch.utils.data import DataLoader, Dataset
 from torch import device
 from sklearn.model_selection import train_test_split
 from datetime import datetime
 
-# Models
 from diffusion import GaussianDiffusion
-from unet_SR3 import UNet
+from unet import UNet
+from embedding import EmbeddingGGM
 
-# Embedding
-from embedding_ggm import EmbeddingGGM
-
-# # Check if CUDA is available
-# device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-device = 'cpu'
+# CPU/CUDA
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+print('Intialize device,', device)
 
 # # *************************
-# # STEP 1: MODELS 
+# # STEP 1: MODEL
 # # *************************
-   
+
 # Define parameters of the U-Net (denoising function)
-in_channels = 6                         # 2x RGB 'concat'
-out_channels = 3                        # Output will also be GrayScale
+in_channels = 6                        
+out_channels = 3                       # Output will also be GrayScale
 inner_channels = 32                     # Depth feature maps, model complexity 
-norm_groups = 32                            # Granularity of normalization, impacting convergence
+norm_groups = 32                        # Granularity of normalization, impacting convergence
 channel_mults = (1, 2, 4, 8, 8)
 attn_res = [8]
 res_blocks = 3
 dropout = 0
 with_noise_level_emb = True
-image_size = 512
+image_size = 128
 
 # # Instantiate the UNet model
 denoise_fn = UNet(
@@ -50,10 +46,10 @@ denoise_fn = UNet(
 )
 
 # # Define diffusion model parameters
-image_size = (512, 512)     # Resized image size
-channels = 3              
+image_size = (128, 128)     # Resized image size
+channels = 3             
 loss_type = 'l1'
-conditional = True        # Currently, the implementation only works conditional
+conditional = True          # Currently, the implementation only works conditional
 
 # # Noise Schedule from: https://arxiv.org/pdf/2306.01875.pdf
 config_diff = {
@@ -83,128 +79,147 @@ print('STATUS --- Model loaded on device:', device)
 # # STEP 2: DATA LOADING (SMALL)
 # # **************************************
 
-# Embedding Spectrogram 
+# DATASET 
+class mijnDataset(Dataset):
+    def __init__(self, clean_signals, noisy_signals):
+        self.clean_signals = clean_signals
+        self.noisy_signals = noisy_signals
+        
+    def __len__(self):
+        return len(self.clean_signals)
+    
+    def __getitem__(self, index):
+        clean_signal = torch.tensor(self.clean_signals[index], dtype=torch.float32)
+        noisy_signal = torch.tensor(self.noisy_signals[index], dtype=torch.float32)
+        # Ensure the shape is (3, height, width)
+        return clean_signal, noisy_signal
+
+# EMBEDDING 
 embedding_ggm = EmbeddingGGM()
 
-# Load Clean and Noisy Slices
-with open('slices_clean.pkl', 'rb') as f:
-    slices_clean = pickle.load(f)
-
-with open ('slices_noisy.pkl', 'rb') as f:
-    slices_noisy = pickle.load(f)
-
-# Larger K means less data...
-x_in_train, x_in_test = embedding_ggm.build_ggm_data(clean_slices= slices_clean, noisy_slices=slices_noisy,k=4000)
-print('Size of x_in_train', len(x_in_train))
-print('Size of x_in_test', len(x_in_test))
-
-# Copy
-x_in_train_original = x_in_train; x_in_test_original = x_in_test
-
-
-# # **************************************
-# # STEP 2: TRANING
-# # **************************************
-
-# Training Config
-config_train = {            ## check this...
-    'feats':40,
-    'epochs':1,
-    'batch_size':1,
-    'lr':1.0e-3
-}
-
-train_model = 1
-save_model = 1
-
-# Get current timestamp
-current_time = datetime.now()
-
-# Extract hour and minute from the timestamp
-hour = current_time.hour
-minute = current_time.minute
-
-# Format hour and minute in the desired format
-formatted_time = f"{hour}h{minute:02d}"  # :02d ensures that minutes are displayed with leading zero if less than 10
-
-print(formatted_time)  # Output will be something like: 14h11
-
-# SAVE THE MODELS
-save_model_diff = 'diff_model_ggm' + str(formatted_time) + '.pth'
-save_model_dn = 'dn_model_ggm' + str(formatted_time) + '.pth'
-
-
-# Train model...
-if train_model == 1: 
-
-    # Define custom dataset class
-    class DictDataset(Dataset):
-        def __init__(self, data_dict):
-            self.data_dict = data_dict
-            self.keys = list(data_dict.keys())
-
-        def __len__(self):
-            return len(self.data_dict[self.keys[0]])
-
-        def __getitem__(self, index):
-            return {k: v[index] for k, v in self.data_dict.items()}
-
-    # Training Configuration
-    feats = config_train['feats']
-    epochs = config_train['epochs']
-    batch_size = config_train['batch_size']
-    lr = config_train['lr']
-
-    # Use custom dataset class for training data
-    train_dataset = DictDataset(x_in_train)
-    train_loader = DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True)
-
-    # Define DataLoader for testing dataset
-    test_dataset = DictDataset(x_in_test)
-    test_loader = DataLoader(dataset=test_dataset, batch_size=batch_size, shuffle=False)
-
-    # device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+# Take subsets for x slices (life is not perfect)
+subset_size = 100
+for i in range(0, 55000, subset_size):
+    
+    # Device (return to CUDA after inference if available)
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print('Training on device', device)
 
-    # Initialize optimizer
-    optimizer = Adam(model.parameters(), lr=lr)
+    # TIMESTAMP
+    hour, minute = datetime.now().hour, datetime.now().minute
+    formatted_time = f"{hour}h{minute:02d}"
 
-    print('Status: Training Model')
+    # SAVE
+    save_model_diff = 'diff_model_ggm' + str(formatted_time) + '.pth'
+    save_model_dn = 'dn_model_ggm' + str(formatted_time) + '.pth'
 
-    best_loss = float('inf')  # Initialize the best loss as positive infinity
+    # LOAD SUBSET SLICES
+    with open('ardb_slices_clean.pkl', 'rb') as f:
+        clean_signals = pickle.load(f)
+    clean_signals_subset = clean_signals[i:i+subset_size]
+    
+    ggm_HR = embedding_ggm.ecg_to_GGM(clean_signals[57000][:128])
+    
+    del clean_signals       # REMOVE FROM MEMORY
 
-    # Training Loop
-    for epoch in range(epochs):
+    with open('ardb_slices_noisy.pkl', 'rb') as f:
+        noisy_signals = pickle.load(f)
+
+    ggm_SR = embedding_ggm.ecg_to_GGM(noisy_signals[57000][:128])
+
+    noisy_signals_subset= noisy_signals[i:i+subset_size]
+
+    del noisy_signals       # REMOVE FROM MEMORY
+
+    #############################################
+    ############################################
+
+    dataset = mijnDataset(clean_signals_subset, noisy_signals_subset)
+
+    # # **************************************
+    # # STEP 1b: EMBEDD THE DATA PUSH TO CUDA
+    # # **************************************
+
+    # Initialize lists to store embedded clean and noisy batches
+    embedded_clean_batches = []
+    embedded_noisy_batches = []
+    
+    # Iterate through the dataset to embed each sample
+    for clean_signal, noisy_signal in dataset:
+        #print('Clean signal...')
+        #print(type(clean_signal))
+        #print(clean_signal.shape)
+        clean_ggm = embedding_ggm.ecg_to_GGM(clean_signal)
+        noisy_ggm = embedding_ggm.ecg_to_GGM(noisy_signal)
+
+        # Assuming clean_ggm and noisy_ggm are 2D tensors with shape [height, width]
+        # Add channel dimension with size 1
+        clean_ggm = clean_ggm.unsqueeze(0)  # Adds channel dimension at the beginning
+        noisy_ggm = noisy_ggm.unsqueeze(0)  # Adds channel dimension at the beginning
+
+        embedded_clean_batches.append(clean_ggm)
+        embedded_noisy_batches.append(noisy_ggm)
+
+    # Convert the lists to torch tensors
+    embedded_clean_data = torch.cat(embedded_clean_batches, dim=0)
+    embedded_noisy_data = torch.cat(embedded_noisy_batches, dim=0)
+
+    # # **************************************
+    # # STEP 2: TRANING
+    # # **************************************
+
+    # Example DataLoader creation
+    batch_size = 4
+    num_workers = 0  # Set according to your system capabilities
+    shuffle = True
+    # Use the embedded data for training
+    dataloader = DataLoader(mijnDataset(embedded_clean_data, embedded_noisy_data), 
+                            batch_size=batch_size, num_workers=num_workers, shuffle=shuffle)
+
+    # Define your optimizer
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
+
+    # Set up your training loop
+    num_epochs = 1
+
+    # Initialize best_loss and best_model_state_dict
+    best_loss = float('inf')
+    best_model_state_dict = None
+
+    # TQDM
+    for epoch in range(num_epochs):
         model.train()
         total_loss = 0.0
-        
-        # Create tqdm progress bar
-        pbar = tqdm(train_loader, desc=f"Epoch {epoch+1}/{epochs}", unit="batch")
 
-        for batch_data in pbar:
-            # Move tensors to the GPU if available
-            batch_data = {key: val.to(device) for key, val in batch_data.items()}
+        # Initialize tqdm for the epoch
+        pbar = tqdm(dataloader, desc=f"Epoch {epoch+1}/{num_epochs}", unit="batch")
 
-            # Zero gradients
+        for batch_idx, (clean_batch, noisy_batch) in enumerate(pbar):
+            # Transfer batches to device if necessary (not needed if you've already done it above)
+            clean_batch = clean_batch
+            noisy_batch = noisy_batch
+
+            # Zero the gradients
             optimizer.zero_grad()
 
             # Forward pass
-            loss = model(batch_data)
+            loss = model({'HR': clean_batch, 'SR': noisy_batch})  # Assuming input format is {'HR': clean, 'SR': noisy}
 
             # Backward pass
             loss.backward()
 
-            # Update parameters
+            # Update the parameters
             optimizer.step()
 
-            # Accumulate total loss
+            # Accumulate the loss
             total_loss += loss.item()
-
+        	
             # Update progress bar description with current loss
             pbar.set_postfix({'Loss': loss.item()})
 
+
         # Calculate average loss for the epoch
-        avg_loss = total_loss / len(train_loader)
+        avg_loss = total_loss / len(dataloader)
 
         # Check if current model is the best so far
         if avg_loss < best_loss:
@@ -212,90 +227,64 @@ if train_model == 1:
             best_model_state_dict = model.state_dict()
 
         # Print progress
-        print(f"Epoch [{epoch+1}/{epochs}], Avg Loss: {avg_loss:.4f}")
+        print(f"Epoch [{epoch+1}/{num_epochs}], Avg Loss: {avg_loss:.4f}")
 
-# Save model...  
-if save_model ==  1: 
-   
+
+
+    # ********************
+    # SAVE 
+
     print('Status: Saving Models')
+    torch.save(model.state_dict(), save_model_diff)                 # difffusion model
+    torch.save(model.denoise_fn.state_dict(), save_model_dn)        # denoising model
 
-    # Save diffusion model (model)
-    torch.save(model.state_dict(), save_model_diff)
-
-    # Save denoising model (UNet) (denoise_fn)
-    torch.save(model.denoise_fn.state_dict(), save_model_dn)
-
-# *************************************************
-# Step 4: Inference (or continue training)
-
-print('Status: Inference Time...')
-
-# ! INFERENCE NEEDS TO BE ON CPU
-inference_device = 'cpu'
-device = inference_device
-
-# Load a trained denoiser...
-denoise_fun = UNet(
-    in_channel=6,
-    out_channel=3,
-    inner_channel=inner_channels,
-    norm_groups=norm_groups,
-    channel_mults=channel_mults,
-    attn_res=[8],
-    res_blocks=res_blocks,
-    dropout=dropout,
-    with_noise_level_emb=with_noise_level_emb,
-    image_size=512
-).to(device)  # Move the denoising model to the GPU if available
-
-denoise_fun.load_state_dict(torch.load(save_model_dn, map_location=device))
-denoise_fun.eval()
-
-diffusion = GaussianDiffusion(denoise_fun, image_size=(512,512),channels=1,loss_type='l1',conditional=True,config_diff=config_diff).to(device)  # Move the diffusion model to the GPU if available
-diffusion.load_state_dict(torch.load(save_model_diff, map_location=device))
-
-print('Status: Diffusion and denoising model loaded successfully')
-
-def visualize_tensor(image_tensors, titles=None):
-        num_images = len(image_tensors)
-
-        # Check if titles are provided and if their number matches the number of images
-        if titles is not None and len(titles) != num_images:
-            print("Error: Number of titles does not match the number of images.")
-            return
-
-        # Create subplots based on the number of images
-        fig, axes = plt.subplots(1, num_images, figsize=(15, 5))
-
-        # Iterate over images and titles to plot them
-        for i, (image_tensor, title) in enumerate(zip(image_tensors, titles)):
-            ax = axes[i] if num_images > 1 else axes  # Use appropriate subplot
-            ax.axis('off')  # Hide axes
-            ax.set_title(title) if title else None  # Set subplot title if provided
-            image_np = image_tensor.permute(1, 2, 0).cpu().numpy()  # Convert tensor to numpy array
-            if len(image_np.shape) == 2:  # If grayscale
-                ax.imshow(image_np, cmap='gray')
-            else:  # If RGB
-                ax.imshow(image_np)
-
-        plt.show()
-
-    # Sample Tensor
-
-idx_sampled = 0
-
-sampled_tensor = diffusion.p_sample_loop_single(x_in_train['SR'][idx_sampled])
-sampled_tensor = sampled_tensor.unsqueeze(0)
-
-image_tensors= [x_in_train_original['HR'][idx_sampled],x_in_train_original['SR'][idx_sampled],sampled_tensor ]
-names = ['Original HR', 'Original SR', 'Sampled Image'] 
-
-# Visualize Results
-visualize_tensor(image_tensors,names)
-
-# Save the sampled_tensor as a pickle file... 
-with open('sampled_tensor_ggm.pkl','wb') as f:
-    pickle.dump(sampled_tensor, f)
         
-    #  TODO:
-     # - sav.dump(sampled_tensor, f)
+    # *************************************************
+    # STEP  
+
+    print('Status: Inference Time...')
+
+    # ! INFERENCE NEEDS TO BE ON CPU
+    inference_device = 'cpu'
+    device = inference_device
+
+    # Load a trained denoiser...
+    denoise_fun = UNet(
+        in_channel=6,
+        out_channel=3,
+        inner_channel=inner_channels,
+        norm_groups=norm_groups,
+        channel_mults=channel_mults,
+        attn_res=[8],
+        res_blocks=res_blocks,
+        dropout=dropout,
+        with_noise_level_emb=with_noise_level_emb,
+        image_size=128
+    ).to(device)  # Move the denoising model to the GPU if available
+
+    denoise_fun.load_state_dict(torch.load(save_model_dn, map_location=device))
+    denoise_fun.eval()
+
+    diffusion = GaussianDiffusion(denoise_fun, image_size=(128,128),channels=3,loss_type='l1',conditional=True,config_diff=config_diff).to(device)  # Move the diffusion model to the GPU if available
+    diffusion.load_state_dict(torch.load(save_model_diff, map_location=device))
+
+    print('Status: Diffusion and denoising model loaded successfully')
+    
+    # INFERENCE (NOT IN TRAINING SET)
+    # TODO: probably needed to put the GGM on CPU here...
+    print('GGM INFO')
+    print(type(ggm_SR))
+    print('Device ggm_SR', ggm_SR.device)
+    x = ggm_SR.to("cpu")   
+    x = x.to(torch.float32)
+    print('X info', x.device)
+    print(type(x))
+    print(x.dtype)
+    sampled_tensor = diffusion.p_sample_loop_single(x)
+    sampled_tensor = sampled_tensor.unsqueeze(0)
+
+    # Save the sampled_tensor as a pickle file... 
+    save_tensor_sample = 'ggm_sampled_' + str(formatted_time) + '.pkl'
+    with open(save_tensor_sample,'wb') as f:
+        pickle.dump(sampled_tensor, f)
+
