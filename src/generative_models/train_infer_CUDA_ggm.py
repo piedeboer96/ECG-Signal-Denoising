@@ -98,7 +98,7 @@ class mijnDataset(Dataset):
 embedding_ggm = EmbeddingGGM()
 
 # Take subsets for x slices (life is not perfect)
-subset_size = 2500
+subset_size = 100
 for i in range(0, 55000, subset_size):
     
     # Device (return to CUDA after inference if available)
@@ -146,9 +146,9 @@ for i in range(0, 55000, subset_size):
     
     # Iterate through the dataset to embed each sample
     for clean_signal, noisy_signal in dataset:
-        print('Clean signal...')
-        print(type(clean_signal))
-        print(clean_signal.shape)
+        #print('Clean signal...')
+        #print(type(clean_signal))
+        #print(clean_signal.shape)
         clean_ggm = embedding_ggm.ecg_to_GGM(clean_signal)
         noisy_ggm = embedding_ggm.ecg_to_GGM(noisy_signal)
 
@@ -180,7 +180,7 @@ for i in range(0, 55000, subset_size):
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
 
     # Set up your training loop
-    num_epochs = 3
+    num_epochs = 1
 
     # Initialize best_loss and best_model_state_dict
     best_loss = float('inf')
@@ -271,9 +271,16 @@ for i in range(0, 55000, subset_size):
     print('Status: Diffusion and denoising model loaded successfully')
     
     # INFERENCE (NOT IN TRAINING SET)
-    # TODO: convert ggm_SR to  Input type (double) and bias type (float) should be the same ... float32
-    ggm_SR = ggm_SR.float()
-    sampled_tensor = diffusion.p_sample_loop_single(ggm_SR)
+    # TODO: probably needed to put the GGM on CPU here...
+    print('GGM INFO')
+    print(type(ggm_SR))
+    print('Device ggm_SR', ggm_SR.device)
+    x = ggm_SR.to("cpu")   
+    x = x.to(torch.float32)
+    print('X info', x.device)
+    print(type(x))
+    print(x.dtype)
+    sampled_tensor = diffusion.p_sample_loop_single(x)
     sampled_tensor = sampled_tensor.unsqueeze(0)
 
     # Save the sampled_tensor as a pickle file... 

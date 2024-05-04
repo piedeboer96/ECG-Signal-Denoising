@@ -41,8 +41,8 @@ class EmbeddingGGM:
             x_ggm_tensor = x_ggm_tensor.cuda()
 
         # Detach tensor before returning
-        if x_ggm_tensor.is_cuda:
-            x_ggm_tensor = x_ggm_tensor.detach()
+        #if x_ggm_tensor.is_cuda:
+        #    x_ggm_tensor = x_ggm_tensor.detach()
 
         return x_ggm_tensor
 # Further Reading: 
