@@ -69,9 +69,17 @@ model = GaussianDiffusion(
     config_diff=config_diff
 )
 
+
 # # Move models to the GPU if available
 denoise_fn.to(device)
 model.to(device)
+
+model_state_dict = torch.load('diff_model_gaf_pretrained.pth')
+denoise_state_dict = torch.load('dn_model_gaf_pretrained.pth')
+
+# Load weights into the model and denoising model
+model.load_state_dict(model_state_dict)
+denoise_fn.load_state_dict(denoise_state_dict)
 
 print('STATUS --- Model loaded on device:', device)
 
