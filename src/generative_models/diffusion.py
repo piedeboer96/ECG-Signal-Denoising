@@ -36,10 +36,10 @@ class GaussianDiffusion(nn.Module):
         self.loss_type = loss_type
         self.conditional = conditional
         self.num_timesteps = config_diff['num_steps']
-        self.set_loss(device=torch.device("cuda"))
-        self.set_new_noise_schedule(config_diff, device=torch.device("cuda"))
-        #self.set_loss(device=torch.device("cpu"))
-        #self.set_new_noise_schedule(config_diff, device=torch.device("cpu"))
+        #self.set_loss(device=torch.device("cuda"))
+        #self.set_new_noise_schedule(config_diff, device=torch.device("cuda"))
+        self.set_loss(device=torch.device("cpu"))
+        self.set_new_noise_schedule(config_diff, device=torch.device("cpu"))
 
 
 # ******************************************
@@ -221,38 +221,6 @@ class GaussianDiffusion(nn.Module):
             continuous_sqrt_alpha_cumprod * x_start +
             (1 - continuous_sqrt_alpha_cumprod**2).sqrt() * noise
         )
-    
-    # def p_losses(self, x_in, noise=None):
-    #     x_start = x_in['HR']    # High Resolution (good image) that gets diffused
-    #     [b, c, h, w] = x_start.shape
-    #     t = np.random.randint(1, self.num_timesteps + 1)
-    #     continuous_sqrt_alpha_cumprod = torch.FloatTensor(
-    #         np.random.uniform(
-    #             self.sqrt_alphas_cumprod_prev[t-1],
-    #             self.sqrt_alphas_cumprod_prev[t],
-    #             size=b
-    #         )
-    #     ).to(x_start.device)
-    #     continuous_sqrt_alpha_cumprod = continuous_sqrt_alpha_cumprod.view(
-    #         b, -1)
-        
-    #     noise = default(noise, lambda: torch.randn_like(x_start))
-        
-    #     # Diffuse our sample
-    #     x_noisy = self.q_sample(
-    #         x_start=x_start, continuous_sqrt_alpha_cumprod=continuous_sqrt_alpha_cumprod.view(-1, 1, 1, 1), noise=noise)
-    #     if not self.conditional:
-    #         x_recon = self.denoise_fn(x_noisy, continuous_sqrt_alpha_cumprod)
-    #     else:
-            
-    #         y_in = x_in['SR'] # Low Resolution (crap image) that gets fixed and used to condition on...
-    #         concat_input = torch.cat([y_in,x_noisy], dim=1)     # Condition (by concatenating)
-            
-    #         # Pass to the U-net
-    #         x_recon = self.denoise_fn(concat_input, continuous_sqrt_alpha_cumprod)
-            
-    #     loss = self.loss_func(noise, x_recon)  
-    #     return loss
    
     def p_losses(self, x_in, noise=None):
         x_start = x_in['HR']
@@ -275,10 +243,6 @@ class GaussianDiffusion(nn.Module):
         if not self.conditional:
             x_recon = self.denoise_fn(x_noisy, continuous_sqrt_alpha_cumprod)
         else:
-            # print('********')
-            # print('X-start shape...', x_start.shape)
-            # print('X_in SR', x_in['SR'].shape)
-            # print('x noisy', x_noisy.shape)
 
             x_recon = self.denoise_fn(
                 torch.cat([x_in['SR'], x_noisy], dim=1), continuous_sqrt_alpha_cumprod)
