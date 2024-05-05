@@ -116,7 +116,7 @@ class GaussianDiffusion(nn.Module):
     
 
     # ********************************
-    # Sampling, diffusion, ...
+    # Sampling, Diffusion, ...
     def predict_start_from_noise(self, x_t, t, noise):
         return self.sqrt_recip_alphas_cumprod[t] * x_t - \
             self.sqrt_recipm1_alphas_cumprod[t] * noise
