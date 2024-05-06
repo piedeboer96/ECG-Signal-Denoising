@@ -1,11 +1,7 @@
 import numpy as np
 import torch
-# import pickle
 import matplotlib.pyplot as plt
-from tqdm import tqdm  # Corrected import statement
 from pyts.image import MarkovTransitionField
-from torch.utils.data import Dataset, DataLoader
-from sklearn.model_selection import train_test_split
 from pyts.image import GramianAngularField, MarkovTransitionField
 
 # Further Reading...
@@ -14,8 +10,6 @@ class EmbeddingGGM:
         pass
 
     def ecg_to_GGM(self, x):
-
-
         if isinstance(x, np.ndarray):
             # Code to execute if x is a NumPy array
             x = x[:128]
@@ -135,3 +129,31 @@ class EmbeddingGAF:
 
         plt.tight_layout()
         plt.show()
+
+class EmbeddingTime:
+    def __init__(self):
+        pass
+
+    def ecg_to_time(self, signal):
+        signal = signal[:128]
+        n = len(signal)
+        # Create an empty square matrix of size n x n
+        matrix = np.zeros((n, n))
+        # Calculate the middle index of the matrix
+        middle_index = n // 2
+        # Copy the signal to the middle row of the matrix
+        matrix[middle_index, :n] = signal
+        # Tensor
+        x = torch.tensor(matrix).unsqueeze(0)
+        return x
+    
+    def time_to_ecg(self, embedded_signal):
+        # Remove the batch dimension if present
+        embedded_signal = embedded_signal.squeeze(0)
+        # Convert the PyTorch tensor to a NumPy array
+        matrix = embedded_signal.numpy()
+        # Retrieve the middle row of the matrix
+        middle_row = matrix[len(matrix) // 2]
+        # Extract the non-zero elements from the middle row
+        recovered_signal = middle_row[middle_row != 0]
+        return recovered_signal

@@ -29,7 +29,7 @@ config_diff = {
 
 print('Status: Inference Time...')
 
-# ! INFERENCE NEEDS TO BE ON CPU*
+# ! NOTE: fix that we can do inference on GPU
 inference_device = 'cpu'
 device = inference_device
 
@@ -57,10 +57,7 @@ denoise_fun.eval()
 diffusion = GaussianDiffusion(denoise_fun, image_size=(128,128),channels=3,loss_type='l1',conditional=True,config_diff=config_diff).to(device)  # Move the diffusion model to the GPU if available
 diffusion.load_state_dict(torch.load(save_model_diff, map_location=device))
 
-
 print('Status: Diffusion and denoising model loaded successfully')
-    
-
 
 # ************************
 # ************************

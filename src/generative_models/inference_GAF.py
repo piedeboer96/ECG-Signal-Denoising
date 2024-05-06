@@ -9,17 +9,17 @@ from datetime import datetime
 
 from diffusion import GaussianDiffusion
 from unet import UNet
-from embedding import EmbeddingGGM
+
+from embedding import EmbeddingGAF
+
+from visualizations import Visualizations
 
 
 
+# ! NOTE: INFERENCE NEEDS TO BE ON CPU , fix this!
+device = 'cpu'
 
-print('Status: Inference Time...')
-
-# ! INFERENCE NEEDS TO BE ON CPU
-inference_device = 'cpu'
-device = inference_device
-
+# Define parameters of the U-Net (denoising function)
 in_channels = 1*2                        
 out_channels = 1                        # Output will also be GrayScale
 inner_channels = 32                     # Depth feature maps, model complexity 
@@ -45,27 +45,89 @@ denoise_fun = UNet(
     image_size=128
 ).to(device)  # Move the denoising model to the GPU if available
 
+# # Noise Schedule from: https://arxiv.org/pdf/2306.01875.pdf
+# config_diff = {
+#     'beta_start': 0.0001,
+#     'beta_end': 0.5,
+#     'num_steps': 10,      # Reduced number of steps
+#     'schedule': "quad"
+# }
+
+config_diff = {
+    'beta_start': 1e-6,
+    'beta_end': 1e-2,
+    'num_steps': 2000,      # Reduced number of steps
+    'schedule': "linear"
+}
+
+# saved_model_dn = 
+# saved_model_diff = 
 
 
-
-
-
-denoise_fun.load_state_dict(torch.load(save_model_dn, map_location=device))
+denoise_fun.load_state_dict(torch.load('saved_models/run_3/dn_model_gaf19h57.pth', map_location=device))
 denoise_fun.eval()
 
 diffusion = GaussianDiffusion(denoise_fun, image_size=(128,128),channels=1,loss_type='l1',conditional=True,config_diff=config_diff).to(device)  # Move the diffusion model to the GPU if available
-diffusion.load_state_dict(torch.load(save_model_diff, map_location=device))
+diffusion.load_state_dict(torch.load('saved_models/run_3/diff_model_gaf19h57.pth', map_location=device))
 
 print('Status: Diffusion and denoising model loaded successfully')
     
+############################
+############################
+embedding_gaf = EmbeddingGAF()
+
+# LOAD DATA
+with open('ardb_slices_clean.pkl', 'rb') as f:
+    clean_signals = pickle.load(f)
+
+sig_HR = clean_signals[52222][:128]
+gaf_HR = embedding_gaf.ecg_to_GAF(sig_HR)
+
+del clean_signals                           # REMOVE FROM MEMORY
+
+with open('ardb_slices_noisy.pkl', 'rb') as f:
+    noisy_signals = pickle.load(f)
+
+sig_SR = noisy_signals[52222][:128]
+gaf_SR = embedding_gaf.ecg_to_GAF(sig_SR)
+
+del noisy_signals                           # REMOVE FROM MEMORY
+
+
+############################
 # INFERENCE (NOT IN TRAINING SET)
-# TODO: convert gaf_SR to  Input type (double) and bias type (float) should be the same ... float32
-gaf_SR = gaf_SR.float()
-sampled_tensor = diffusion.p_sample_loop_single(gaf_SR)
+
+# FLOAT.32
+x = gaf_SR.to("cpu")   
+x = x.to(torch.float32)
+
+
+# SAMPLE TENSOR
+sampled_tensor = diffusion.p_sample_loop_single(x)
 sampled_tensor = sampled_tensor.unsqueeze(0)
 
-# Save the sampled_tensor as a pickle file... 
-save_tensor_sample = 'gaf_sampled_' + str(formatted_time) + '.pkl'
-with open(save_tensor_sample,'wb') as f:
-    pickle.dump(sampled_tensor, f)
+# SAVE 
+# hour, minute = datetime.now().hour, datetime.now().minute
+# formatted_time = f"{hour}h{minute:02d}"
+# save_tensor_sample = 'gaf_sampled_' + str(formatted_time) + '.pkl'
+# with open(save_tensor_sample,'wb') as f:
+#     pickle.dump(sampled_tensor, f)
+
+
+# RECOVER
+sig_rec = embedding_gaf.GAF_to_ecg(sampled_tensor)
+
+
+#####################
+#####################
+
+
+visualize = Visualizations()
+visualize.visualize_tensor(sampled_tensor)
+
+visualize.plot_multiple_timeseries([sig_HR, sig_SR, sig_rec], ['HR', 'SR', 'Recovered'])
+
+#####################
+#####################
+
 
