@@ -23,12 +23,12 @@ print('Intialize device,', device)
 # Define parameters of the U-Net (denoising function)
 in_channels = 1*2                        
 out_channels = 1                        # Output will also be GrayScale
-inner_channels = 64                     # Depth feature maps, model complexity 
+inner_channels = 32                     # Depth feature maps, model complexity 
 norm_groups = 32                        # Granularity of normalization, impacting convergence
 channel_mults = (1, 2, 4, 8, 8)
-attn_res = [16]
+attn_res = [8]
 res_blocks = 3
-dropout = 0.2
+dropout = 0
 with_noise_level_emb = True
 image_size = 128
 
@@ -53,11 +53,18 @@ loss_type = 'l1'
 conditional = True          # Currently, the implementation only works conditional
 
 # # Noise Schedule from: https://arxiv.org/pdf/2306.01875.pdf
+# config_diff = {
+#     'beta_start': 0.0001,
+#     'beta_end': 0.5,
+#     'num_steps': 10,      # Reduced number of steps
+#     'schedule': "quad"
+# }
+
 config_diff = {
-    'beta_start': 0.0001,
-    'beta_end': 0.5,
-    'num_steps': 10,      # Reduced number of steps
-    'schedule': "quad"
+    'beta_start': 1e-6,
+    'beta_end': 1e-2,
+    'num_steps': 2000,      # Reduced number of steps
+    'schedule': "linear"
 }
 
 # Initialize the Diffusion model 
@@ -98,8 +105,8 @@ class mijnDataset(Dataset):
 embedding_gaf = EmbeddingGAF()
 
 # SUBSETS
-subset_size = 50
-for i in range(0,100, subset_size):
+subset_size = 2500
+for i in range(0,55000, subset_size):
     
     # Device (return to CUDA after inference if available)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -169,7 +176,7 @@ for i in range(0,100, subset_size):
     # # **************************************
 
     # Example DataLoader creation
-    batch_size = 4
+    batch_size = 16
     num_workers = 0  # Set according to your system capabilities
     shuffle = True
     # Use the embedded data for training
@@ -180,7 +187,7 @@ for i in range(0,100, subset_size):
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
 
     # Set up your training loop
-    num_epochs = 1
+    num_epochs = 30
     
     # Initialize best_loss and best_model_state_dict
     best_loss = float('inf')
