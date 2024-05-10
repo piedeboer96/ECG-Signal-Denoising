@@ -1,4 +1,5 @@
 venv/
+myenv/
 datasets/
 data/
 saved_models/
@@ -9,3 +10,4 @@ UNSORTED/
 *.pth
 *.pickle
 *.rar
+*.zip
