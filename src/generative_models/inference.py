@@ -51,11 +51,11 @@ config_diff = {
 }
 
 #################################
-denoise_fun.load_state_dict(torch.load('src/generative_models/saved_models/run_9/dn_model_gaf1h30.pth', map_location=device))
+denoise_fun.load_state_dict(torch.load('src/generative_models/dn_model_MA17h00.pth', map_location=device))
 denoise_fun.eval()
 
 diffusion = GaussianDiffusion(denoise_fun, image_size=(128,128),channels=1,loss_type='l1',conditional=True,config_diff=config_diff).to(device)  # Move the diffusion model to the GPU if available
-diffusion.load_state_dict(torch.load('src/generative_models/saved_models/run_9/diff_model_gaf1h30.pth', map_location=device))
+diffusion.load_state_dict(torch.load('src/generative_models/diff_model_MA17h00.pth', map_location=device))
 
 print('Status: Diffusion and denoising model loaded successfully')
     
@@ -64,23 +64,26 @@ embedding_gaf = EmbeddingGAF()
 nb = NoisyECGBuilder()
 
 # LOAD DATA
-with open('src/generative_models/ardb_slices_clean.pkl', 'rb') as f:
+with open('src/generative_models/ardb_slices_clean_MA.pkl', 'rb') as f:
     clean_signals = pickle.load(f)
 
-sig_HR = clean_signals[52222][:128]
+# sig_HR = clean_signals[52222][:128]       # IN TRAINING SET
+sig_HR = clean_signals[57200][:128]
+
 gaf_HR = embedding_gaf.ecg_to_GAF(sig_HR)
 
 del clean_signals                           # REMOVE FROM MEMORY
 
-with open('src/generative_models/ardb_slices_noisy.pkl', 'rb') as f:
+with open('src/generative_models/ardb_slices_noisy_MA_snr3.pkl', 'rb') as f:
     noisy_signals = pickle.load(f)
 
 # sig_SR = noisy_signals[52222][:128]
 
-sig_SR = nb.add_noise_to_ecg(sig_HR, noise_type='em',snr=3)
+sig_SR = nb.add_noise_to_ecg(sig_HR, noise_type='ma',snr=3)     # IT WAS VERY LIKELY NOT IN THE TRAINING SET -- SINCE OUR EM NOISE... IS NEW RANDOM PICKED :)
+
 gaf_SR = embedding_gaf.ecg_to_GAF(sig_SR)
 
-del noisy_signals                           # REMOVE FROM MEMORY
+del noisy_signals                           # REMOVE FROM MEMORY 
 
 ############################
 # INFERENCE (NOT IN TRAINING SET)

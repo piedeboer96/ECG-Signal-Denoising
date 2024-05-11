@@ -52,14 +52,7 @@ channels = 1
 loss_type = 'l1'
 conditional = True          # Currently, the implementation only works conditional
 
-# # Noise Schedule from: https://arxiv.org/pdf/2306.01875.pdf
-# config_diff = {
-#     'beta_start': 0.0001,
-#     'beta_end': 0.5,
-#     'num_steps': 10,      # Reduced number of steps
-#     'schedule': "quad"
-# }
-
+# Taken from SR3
 config_diff = {
     'beta_start': 1e-6,
     'beta_end': 1e-2,
@@ -77,10 +70,17 @@ model = GaussianDiffusion(
     config_diff=config_diff
 )
 
-# Device
+########################################
+saved_diffusion_model_path = 'diff_model_EM.pth'  # Provide the correct path
+saved_denoising_model_path = 'dn_model_EM.pth'     # Provide the correct path
+
+model.load_state_dict(torch.load(saved_diffusion_model_path))
+model.denoise_fn.load_state_dict(torch.load(saved_denoising_model_path))
+########################################
+
+# DEVICE
 denoise_fn.to(device)
 model.to(device)
-
 print('Status: Model loaded on device', device)
 
 # # **************************************
@@ -117,11 +117,11 @@ for i in range(0,55000, subset_size):
     formatted_time = f"{hour}h{minute:02d}"
 
     # SAVE
-    save_model_diff = 'diff_model_gaf' + str(formatted_time) + '.pth'
-    save_model_dn = 'dn_model_gaf' + str(formatted_time) + '.pth'
+    save_model_diff = 'diff_model_MA' + str(formatted_time) + '.pth'
+    save_model_dn = 'dn_model_MA' + str(formatted_time) + '.pth'
 
     # LOAD SUBSET SLICES
-    with open('ardb_slices_clean.pkl', 'rb') as f:
+    with open('ardb_slices_clean_MA.pkl', 'rb') as f:
         clean_signals = pickle.load(f)
     clean_signals_subset = clean_signals[i:i+subset_size]
     
@@ -129,7 +129,7 @@ for i in range(0,55000, subset_size):
     
     del clean_signals       # REMOVE FROM MEMORY
 
-    with open('ardb_slices_noisy.pkl', 'rb') as f:
+    with open('ardb_slices_noisy_MA_snr3.pkl', 'rb') as f:
         noisy_signals = pickle.load(f)
 
     gaf_SR = embedding_gaf.ecg_to_GAF(noisy_signals[57000][:128])
