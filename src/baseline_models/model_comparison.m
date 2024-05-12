@@ -1,15 +1,15 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Load the clean signal
-data_HR = load('sig_HR.mat');
+data_HR = load('run_2/sig_HR.mat');
 sig_HR = data_HR.sig_HR; 
 
 % Load the noisy signal
-data_SR = load('sig_SR.mat');
+data_SR = load('run_2/sig_SR.mat');
 sig_SR = data_SR.sig_SR; 
 
 % Load denoised signal from SR3
-data_rec = load('sig_rec.mat');
+data_rec = load('run_2/sig_rec.mat');
 sig_rec = data_rec.sig_rec;                 % denoise SR3 model
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -26,7 +26,7 @@ lms = dsp.LMSFilter('Method', 'LMS', 'Length', 32, 'StepSize', 0.0276); % settin
 lms_default = dsp.LMSFilter(); % MATLAB propertiery stepsize source
 
 % Adaptive Filter RLS
-rls = dsp.RLSFilter();
+rls = dsp.RLSFilter()
 
 
 x = sig_SR';
@@ -35,25 +35,8 @@ d = sig_HR';
 [y0, err0, wts0] = lms_default(x, d);                                   % prop stepsource
 [y1, err1, wts1] = lms(x,d);
 
-%% RLS
-
-
-% Define the parameters
-filter_length = 32; % Length of filter coefficients vector
-sliding_window_length = 48; % Width of sliding window
-forgetting_factor = 0.91398; % RLS forgetting factor
-initial_inverse_covariance = eye(32); % Initial inverse covariance
-initial_coefficients = zeros(filter_length, 1); % Initial coefficients of filter
-
-% Create an RLS filter object with specified properties
-rlsFilt = dsp.RLSFilter('Length', filter_length, ...
-    'SlidingWindowBlockLength', sliding_window_length, ...
-    'ForgettingFactor', forgetting_factor, ...
-    'InitialCoefficients', initial_coefficients, ...
-    'InitialInverseCovariance', initial_inverse_covariance);
-
-% Apply the RLS filter
-[y, e] = rlsFilt(x, d);
+% RLS FILTERD
+[y,e] = rlsFilt(x,d)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -74,16 +57,13 @@ rmse_lms_PAPER = rmse(d,y1); rmse_lms_PAPER_str = sprintf('RMSE: %.4f', rmse_lms
 rmse_sg = rmse(sig_HR,sig_sg); rmse_sg_str = sprintf('RMSE: %.4f', rmse_sg);
 rmse_SR3 = rmse(sig_HR, sig_rec_aligned); rmse_SR3_str = sprintf('RMSE: %.4f', rmse_SR3);
 
-rmse_RLS = rmse(d, y); rmse_RLS_str = sprintf('RMSE: %.4f', rmse_RLS);
-
 % PSNR
 psnr_wavelet = psnr(sig_wavelet, sig_HR);
 psnr_wavelet_MATLAB = psnr(sig_wavelet_MATLAB, sig_HR);
 psnr_lms_MATLAB = psnr(y0, d);
-psnr_lms_PAPER = psnr(y1, d);
+psnr_lms_PAPER = psnr(y0, d);
 psnr_sg = psnr(sig_sg, sig_HR);
 psnr_SR3 = psnr(sig_rec_aligned, sig_HR);
-psnr_RLS = psnr(y,d);
 
 % Compute DTW for sig_wavelet
 dtw_wavelet = dtw(sig_HR, sig_wavelet);
@@ -92,7 +72,6 @@ dtw_lms_MATLAB = dtw(sig_HR, y0);
 dtw_lms_PAPER = dtw(sig_HR, y1);
 dtw_sg = dtw(sig_HR, sig_sg);
 dtw_SR3 = dtw(sig_HR, sig_rec_aligned);
-dtw_RLS = dtw(sig_HR, y);
 
 
 % Define the data for the table
@@ -102,12 +81,11 @@ data = {
     rmse_lms_MATLAB_str, psnr_lms_MATLAB, dtw_lms_MATLAB;
     rmse_lms_PAPER_str, psnr_lms_PAPER, dtw_lms_PAPER;
     rmse_sg_str, psnr_sg, dtw_sg;
-    rmse_SR3_str, psnr_SR3, dtw_SR3;
-    rmse_RLS_str, psnr_RLS, dtw_RLS
+    rmse_SR3_str, psnr_SR3, dtw_SR3
 };
 
 % Define the row and column names
-row_names = {'Wavelet', 'Wavelet (MATLAB)', 'LMS (MATLAB)', 'LMS (Paper)', 'SG Filter', 'SR3', 'RLS'};
+row_names = {'Wavelet', 'Wavelet (MATLAB)', 'LMS (MATLAB)', 'LMS (Paper)', 'SG Filter', 'SR3'};
 col_names = {'RMSE (lower better)', 'PSNR (higher better)', 'DTW (lower better)'};
 
 % Create the table
@@ -115,6 +93,68 @@ table_results = array2table(data, 'RowNames', row_names, 'VariableNames', col_na
 
 % Display the table
 disp(table_results);
+
+
+
+% Define the data for the bar charts
+rmse_values = [rmse_wavelet, rmse_wavelet_MATLAB, rmse_lms_MATLAB, rmse_lms_PAPER, rmse_sg, rmse_SR3];
+psnr_values = [psnr_wavelet, psnr_wavelet_MATLAB, psnr_lms_MATLAB, psnr_lms_PAPER, psnr_sg, psnr_SR3];
+dtw_values = [dtw_wavelet, dtw_wavelet_MATLAB, dtw_lms_MATLAB, dtw_lms_PAPER, dtw_sg, dtw_SR3];
+
+% Create figure for bar charts
+figure;
+
+% Plot RMSE bar chart
+subplot(1,3,1);
+bar(rmse_values);
+title('RMSE (lower better)');
+ylabel('Value');
+set(gca, 'xticklabel', row_names);
+xtickangle(45);
+
+% Plot PSNR bar chart
+subplot(1,3,2);
+bar(psnr_values);
+title('PSNR (higher better)');
+ylabel('Value');
+set(gca, 'xticklabel', row_names);
+xtickangle(45);
+
+% Plot DTW bar chart
+subplot(1,3,3);
+bar(dtw_values);
+title('DTW (lower better)');
+ylabel('Value');
+set(gca, 'xticklabel', row_names);
+xtickangle(45);
+
+% Adjust layout
+sgtitle('Comparison of Denoising Methods');
+
+% Define the data for the bar charts
+methods = {'Wavelet', 'Wavelet (MATLAB)', 'LMS (MATLAB)', 'LMS (Paper)', 'SG Filter', 'SR3'};
+rmse_values = [rmse_wavelet, rmse_wavelet_MATLAB, rmse_lms_MATLAB, rmse_lms_PAPER, rmse_sg, rmse_SR3];
+psnr_values = [psnr_wavelet, psnr_wavelet_MATLAB, psnr_lms_MATLAB, psnr_lms_PAPER, psnr_sg, psnr_SR3];
+dtw_values = [dtw_wavelet, dtw_wavelet_MATLAB, dtw_lms_MATLAB, dtw_lms_PAPER, dtw_sg, dtw_SR3];
+
+% Create grouped bar chart
+figure;
+bar_data = [rmse_values; psnr_values; dtw_values];
+bar_groups = bar(bar_data);
+title('Comparison of Denoising Methods');
+ylabel('Value');
+legend('RMSE', 'PSNR', 'DTW');
+set(gca, 'xticklabel', methods);
+xtickangle(45);
+
+% Adjust colors
+colors = lines(3); % Get colors for each group
+for i = 1:numel(bar_groups)
+    bar_groups(i).FaceColor = colors(mod(i-1, 3)+1, :); % Assign color to each group
+end
+
+
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Plot original and denoised signals

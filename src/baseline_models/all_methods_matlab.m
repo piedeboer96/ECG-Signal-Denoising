@@ -1,15 +1,15 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Load the clean signal
-data_HR = load('sig_HR.mat');
+data_HR = load('run_2/sig_HR.mat');
 sig_HR = data_HR.sig_HR; 
 
 % Load the noisy signal
-data_SR = load('sig_SR.mat');
+data_SR = load('run_2/sig_SR.mat');
 sig_SR = data_SR.sig_SR; 
 
 % Load denoised signal from SR3
-data_rec = load('sig_rec.mat');
+data_rec = load('run_2/sig_rec.mat');
 sig_rec = data_rec.sig_rec;                 % denoise SR3 model
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -115,6 +115,68 @@ table_results = array2table(data, 'RowNames', row_names, 'VariableNames', col_na
 
 % Display the table
 disp(table_results);
+
+
+
+% Define the data for the bar charts
+rmse_values = [rmse_wavelet, rmse_wavelet_MATLAB, rmse_lms_MATLAB, rmse_lms_PAPER, rmse_sg, rmse_SR3, rmse_RLS];
+psnr_values = [psnr_wavelet, psnr_wavelet_MATLAB, psnr_lms_MATLAB, psnr_lms_PAPER, psnr_sg, psnr_SR3, psnr_RLS];
+dtw_values = [dtw_wavelet, dtw_wavelet_MATLAB, dtw_lms_MATLAB, dtw_lms_PAPER, dtw_sg, dtw_SR3, dtw_RLS];
+
+% Create figure for bar charts
+figure;
+
+% Plot RMSE bar chart
+subplot(1,3,1);
+bar(rmse_values);
+title('RMSE (lower better)');
+ylabel('Value');
+set(gca, 'xticklabel', row_names);
+xtickangle(45);
+
+% Plot PSNR bar chart
+subplot(1,3,2);
+bar(psnr_values);
+title('PSNR (higher better)');
+ylabel('Value');
+set(gca, 'xticklabel', row_names);
+xtickangle(45);
+
+% Plot DTW bar chart
+subplot(1,3,3);
+bar(dtw_values);
+title('DTW (lower better)');
+ylabel('Value');
+set(gca, 'xticklabel', row_names);
+xtickangle(45);
+
+% Adjust layout
+sgtitle('Comparison of Denoising Methods');
+
+% Define the data for the bar charts
+methods = {'Wavelet', 'Wavelet (MATLAB)', 'LMS (MATLAB)', 'LMS (Paper)', 'SG Filter', 'SR3'};
+rmse_values = [rmse_wavelet, rmse_wavelet_MATLAB, rmse_lms_MATLAB, rmse_lms_PAPER, rmse_sg, rmse_SR3];
+psnr_values = [psnr_wavelet, psnr_wavelet_MATLAB, psnr_lms_MATLAB, psnr_lms_PAPER, psnr_sg, psnr_SR3];
+dtw_values = [dtw_wavelet, dtw_wavelet_MATLAB, dtw_lms_MATLAB, dtw_lms_PAPER, dtw_sg, dtw_SR3];
+
+% Create grouped bar chart
+figure;
+bar_data = [rmse_values; psnr_values; dtw_values];
+bar_groups = bar(bar_data);
+title('Comparison of Denoising Methods');
+ylabel('Value');
+legend('RMSE', 'PSNR', 'DTW');
+set(gca, 'xticklabel', methods);
+xtickangle(45);
+
+% Adjust colors
+colors = lines(3); % Get colors for each group
+for i = 1:numel(bar_groups)
+    bar_groups(i).FaceColor = colors(mod(i-1, 3)+1, :); % Assign color to each group
+end
+
+
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Plot original and denoised signals

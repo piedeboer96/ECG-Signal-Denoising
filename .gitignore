@@ -4,6 +4,7 @@ datasets/
 data/
 saved_models/
 src/generative_models/saved_models
+src/generative_models/models_ma
 UNSORTED/
 *.dat
 *.pkl

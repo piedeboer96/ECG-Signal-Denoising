@@ -1,9 +1,9 @@
 % Load the clean signal
-data_HR = load('sig_HR.mat');
+data_HR = load('run_2/sig_HR.mat');
 sig_HR = data_HR.sig_HR;
 
 % Load the noisy signal
-data_SR = load('sig_SR.mat');
+data_SR = load('run_2/sig_SR.mat');
 sig_SR = data_SR.sig_SR;
 
 % Apply Savitzky-Golay filtering
@@ -32,3 +32,4 @@ plot(sig_SR, 'g');
 title('Noisy SR Signal');
 xlabel('Sample');
 ylabel('Amplitude');
+

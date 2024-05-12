@@ -51,11 +51,11 @@ config_diff = {
 }
 
 #################################
-denoise_fun.load_state_dict(torch.load('src/generative_models/dn_model_MA17h00.pth', map_location=device))
+denoise_fun.load_state_dict(torch.load('src/generative_models/models_ma/dn_model_MA19h29.pth', map_location=device))
 denoise_fun.eval()
 
 diffusion = GaussianDiffusion(denoise_fun, image_size=(128,128),channels=1,loss_type='l1',conditional=True,config_diff=config_diff).to(device)  # Move the diffusion model to the GPU if available
-diffusion.load_state_dict(torch.load('src/generative_models/diff_model_MA17h00.pth', map_location=device))
+diffusion.load_state_dict(torch.load('src/generative_models/models_ma/diff_model_MA19h29.pth', map_location=device))
 
 print('Status: Diffusion and denoising model loaded successfully')
     
@@ -79,11 +79,15 @@ with open('src/generative_models/ardb_slices_noisy_MA_snr3.pkl', 'rb') as f:
 
 # sig_SR = noisy_signals[52222][:128]
 
-sig_SR = nb.add_noise_to_ecg(sig_HR, noise_type='ma',snr=3)     # IT WAS VERY LIKELY NOT IN THE TRAINING SET -- SINCE OUR EM NOISE... IS NEW RANDOM PICKED :)
+sig_SR = nb.add_noise_to_ecg(sig_HR, noise_type='em',snr=1)     # IT WAS VERY LIKELY NOT IN THE TRAINING SET -- SINCE OUR EM NOISE... IS NEW RANDOM PICKED :)
 
 gaf_SR = embedding_gaf.ecg_to_GAF(sig_SR)
 
 del noisy_signals                           # REMOVE FROM MEMORY 
+
+# TODO:
+# -- train the 
+
 
 ############################
 # INFERENCE (NOT IN TRAINING SET)
@@ -105,10 +109,16 @@ with open(save_tensor_sample,'wb') as f:
 
 # RECOVER
 sig_rec = embedding_gaf.GAF_to_ecg(sampled_tensor)
-filename = 'sig_rec.mat'
+
+filename_SR = 'sig_SR.mat'
+filename_HR = 'sig_HR.mat'
+filename_rec = 'sig_rec.mat'
+
 
 # Save the array to a .mat file
-scipy.io.savemat(filename, {'sig_rec': sig_rec})
+scipy.io.savemat(filename_SR, {'sig_SR': sig_SR})
+scipy.io.savemat(filename_HR, {'sig_HR': sig_HR})
+scipy.io.savemat(filename_rec, {'sig_rec': sig_rec})
 
 #####################
 #####################

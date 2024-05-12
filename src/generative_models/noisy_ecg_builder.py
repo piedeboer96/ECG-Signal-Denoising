@@ -29,7 +29,7 @@ class NoisyECGBuilder:
             noise_ma = self.resample_signal(noise_ma, 360, 128)
             noise_ma_128_samp = self.pick_random_slice(noise_ma,slice_length)
             noisy_signal = self.noise_adder(ecg_signal,noise_ma_128_samp,snr)
-            return noisy_signal
+            return noisy_signal, noise_ma_128_samp
         
         if noise_type == 'bw':
             path_to_noise_record = "data/nstdb/bw" 
@@ -39,6 +39,36 @@ class NoisyECGBuilder:
             noise_bw_128_samp = self.pick_random_slice(noise_bw,slice_length)
             noisy_signal = self.noise_adder(ecg_signal,noise_bw_128_samp,snr)
             return noisy_signal
+
+    def get_noisy_slice(self,ecg_signal,noise_type):
+        
+        slice_length = len(ecg_signal)
+        print('Length of ECG signal', slice_length)
+
+        if noise_type == 'em':
+            path_to_noise_record = "data/nstdb/em" 
+            record_em = wfdb.rdsamp(path_to_noise_record)
+            noise_em = record_em[0][:, 0]
+            noise_em = self.resample_signal(noise_em, 360, 128) 
+            noise_em_128_samp = self.pick_random_slice(noise_em,slice_length)
+            return noise_em_128_samp
+        
+        if noise_type == 'ma':
+            path_to_noise_record = "data/nstdb/ma" 
+            record_ma = wfdb.rdsamp(path_to_noise_record)
+            noise_ma = record_ma[0][:, 0]
+            noise_ma = self.resample_signal(noise_ma, 360, 128)
+            noise_ma_128_samp = self.pick_random_slice(noise_ma,slice_length)
+            return noise_ma_128_samp
+        
+        if noise_type == 'bw':
+            path_to_noise_record = "data/nstdb/bw" 
+            record_bw = wfdb.rdsamp(path_to_noise_record)
+            noise_bw= record_bw[0][:, 0]
+            noise_bw = self.resample_signal(noise_bw, 360, 128) 
+            noise_bw_128_samp = self.pick_random_slice(noise_bw,slice_length)
+            return noise_bw_128_samp
+
 
     def noise_adder(self, ecg_signal, noise_signal, snr_dB):
         """
