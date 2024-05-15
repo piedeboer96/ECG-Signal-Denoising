@@ -29,7 +29,7 @@ class NoisyECGBuilder:
             noise_ma = self.resample_signal(noise_ma, 360, 128)
             noise_ma_128_samp = self.pick_random_slice(noise_ma,slice_length)
             noisy_signal = self.noise_adder(ecg_signal,noise_ma_128_samp,snr)
-            return noisy_signal, noise_ma_128_samp
+            return noisy_signal
         
         if noise_type == 'bw':
             path_to_noise_record = "data/nstdb/bw" 

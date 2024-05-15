@@ -1,0 +1,5 @@
+MA NOISE AT SNR=1
+
+SAMPLE [57200][:128]
+
+MODEL dn_model_COMP2h02

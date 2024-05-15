@@ -77,8 +77,6 @@ model = GaussianDiffusion(
     config_diff=config_diff
 )
 
-
-
 # Device
 denoise_fn.to(device)
 model.to(device)

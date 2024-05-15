@@ -2,16 +2,30 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Load the clean signal
-data_HR = load('sig_HR.mat');
+data_HR = load('resuts/afdb/01/sig_HR.mat');
 sig_HR = data_HR.sig_HR; 
 
 % Load the noisy signal
-data_SR = load('sig_SR.mat');
+data_SR = load('runs_AF/01/sig_SR.mat');
 sig_SR = data_SR.sig_SR; 
 
 % Load denoised signal from SR3
-data_rec = load('sig_rec.mat');
+data_rec = load('runs_AF/01/sig_rec.mat');
 sig_rec = data_rec.sig_rec;                 % denoise SR3 model
+
+
+%%%%%%%%%%%%%%%
+% Allign SR3
+% Calculate the mean of each signal
+mean_HR = mean(sig_HR);
+mean_SR = mean(sig_SR);
+
+% Calculate the difference between their means
+mean_diff = mean_HR - mean_SR;
+
+% Shift sig_SR vertically by mean_diff
+sig_SR = sig_SR + mean_diff;
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -85,6 +99,8 @@ title('Original Signal');
 subplot(2,1,2);
 plot(sig_SR);
 title('Original Noisy Signal');
+
+
 
 % Create a new figure for denoised signals
 % Plot original and denoised signals

@@ -5,7 +5,7 @@ class Visualizations:
     def __init__(self):
         pass
 
-    def visualize_tensor(self,tensor):
+    def visualize_tensor(self,tensor,title):
         print('Shape', tensor.shape)
 
         # Convert the tensor to a NumPy array
@@ -15,6 +15,7 @@ class Visualizations:
         image_array = image_array.transpose(1, 2, 0)
 
         # Display the image using Matplotlib
+        plt.title(title)
         plt.imshow(image_array)
         plt.axis('off')  # Turn off axis
         plt.show()

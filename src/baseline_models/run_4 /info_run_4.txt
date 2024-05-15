@@ -1,6 +1,0 @@
-Noise EM  - SNR 1 
-
-MODEL : 
-
-dn_model_MA19h29 -- trained on MA (and before on EM)
-
