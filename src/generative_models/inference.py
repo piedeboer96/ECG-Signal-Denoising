@@ -48,11 +48,11 @@ config_diff = {
 }
 
 #################################
-denoise_fun.load_state_dict(torch.load('models/dn_model_1.pth', map_location=device))
+denoise_fun.load_state_dict(torch.load('models/dn_model_COMP_AF17h25.pth', map_location=device))
 denoise_fun.eval()
 
 diffusion = GaussianDiffusion(denoise_fun, image_size=(128,128),channels=1,loss_type='l1',conditional=True,config_diff=config_diff).to(device)  # Move the diffusion model to the GPU if available
-diffusion.load_state_dict(torch.load('models/diff_model_1.pth', map_location=device))
+diffusion.load_state_dict(torch.load('models/diff_model_COMP_AF17h25.pth', map_location=device))
 
 print('Status: Diffusion and denoising model loaded successfully')
     
@@ -62,8 +62,8 @@ embedding_gaf = EmbeddingGAF()
 nb = NoisyECGBuilder()
 #################################
 
-data_HR = 'results/ardb/MA/m1_ma_snr_5/sig_HR.mat'
-data_SR = 'results/ardb/MA/m1_ma_snr_5/sig_SR_MA_5.mat'
+data_HR = 'results/ardb/MA/m2_ma_snr_5/sig_HR.mat'
+data_SR = 'results/ardb/MA/m2_ma_snr_5/sig_SR.mat'
 
 #Load sig_HR from .mat file
 mat_HR = scipy.io.loadmat(data_HR)
