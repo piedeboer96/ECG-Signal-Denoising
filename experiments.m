@@ -2,15 +2,15 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Load the clean signal
-data_HR = load('results/af/01/sig_HR.mat');
+data_HR = load('results/ardb/MA/m2_ma_snr_5/sig_HR.mat');
 sig_HR = data_HR.sig_HR; 
 
 % Load the noisy signal
-data_SR = load('results/af/01/sig_SR.mat');
+data_SR = load('results/ardb/MA/m2_ma_snr_5/sig_SR.mat');
 sig_SR = data_SR.sig_SR; 
 
 % Load denoised signal from SR3
-data_rec = load('results/af/01/sig_rec.mat');
+data_rec = load('results/ardb/MA/m2_ma_snr_5/sig_rec.mat');
 sig_rec = data_rec.sig_rec;                 % denoise SR3 model
 
 

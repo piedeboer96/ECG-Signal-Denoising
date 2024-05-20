@@ -1,0 +1,9 @@
+
+MODEL 1 - AF - COMP SNR 3
+
+                       RMSE (lower better)    PSNR (higher better)    MAE (lower better)
+                       ___________________    ____________________    __________________
+
+    Wavelet (Paper)     {'RMSE: 0.2741'}          {[11.2429]}             {[0.2263]}    
+    LMS (MATLAB)        {'RMSE: 0.1397'}          {[17.0940]}             {[0.1091]}    
+    SR3                 {'RMSE: 0.1874'}          {[14.5425]}             {[0.1357]}   

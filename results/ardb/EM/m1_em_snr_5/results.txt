@@ -1,0 +1,6 @@
+                        RMSE (lower better)    PSNR (higher better)    MAE (lower better)
+                       ___________________    ____________________    __________________
+
+    Wavelet (Paper)     {'RMSE: 0.1515'}          {[16.3916]}             {[0.1058]}    
+    LMS (MATLAB)        {'RMSE: 0.1909'}          {[14.3854]}             {[0.1560]}    
+    SR3                 {'RMSE: 0.1095'}          {[19.2141]}             {[0.0706]}  

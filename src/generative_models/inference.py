@@ -48,11 +48,11 @@ config_diff = {
 }
 
 #################################
-denoise_fun.load_state_dict(torch.load('models/dn_model_COMP_AF17h25.pth', map_location=device))
+denoise_fun.load_state_dict(torch.load('models/dn_model_2.pth', map_location=device))
 denoise_fun.eval()
 
 diffusion = GaussianDiffusion(denoise_fun, image_size=(128,128),channels=1,loss_type='l1',conditional=True,config_diff=config_diff).to(device)  # Move the diffusion model to the GPU if available
-diffusion.load_state_dict(torch.load('models/diff_model_COMP_AF17h25.pth', map_location=device))
+diffusion.load_state_dict(torch.load('models/diff_model_2.pth', map_location=device))
 
 print('Status: Diffusion and denoising model loaded successfully')
     
@@ -62,8 +62,8 @@ embedding_gaf = EmbeddingGAF()
 nb = NoisyECGBuilder()
 #################################
 
-data_HR = 'results/ardb/MA/m2_ma_snr_5/sig_HR.mat'
-data_SR = 'results/ardb/MA/m2_ma_snr_5/sig_SR.mat'
+data_HR = 'results/ardb/COMPOSITE/m2_comp_snr_5/sig_HR.mat'
+data_SR = 'results/ardb/COMPOSITE/m2_comp_snr_5/sig_SR.mat'
 
 #Load sig_HR from .mat file
 mat_HR = scipy.io.loadmat(data_HR)
@@ -88,7 +88,6 @@ x = x.to(torch.float32)
 sampled_tensor = diffusion.p_sample_loop_single(x)
 sampled_tensor = sampled_tensor.unsqueeze(0)
 
-
 # RECOVER
 sig_rec = embedding_gaf.GAF_to_ecg(sampled_tensor)
 
@@ -96,12 +95,10 @@ filename_SR = 'sig_SR.mat'
 filename_HR = 'sig_HR.mat'
 filename_rec = 'sig_rec.mat'
 
-
 # Save the array to a .mat file
 filename_SR = 'sig_SR.mat'
 scipy.io.savemat(filename_HR, {'sig_HR': sig_HR})
 scipy.io.savemat(filename_rec, {'sig_rec': sig_rec})
-
 
 #####################
 vis.visualize_tensor(gaf_HR,'Gaf HR')
