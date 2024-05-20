@@ -1,9 +1,6 @@
-import matplotlib.pyplot as plt
 import torch
-import pickle
 import scipy.io
 from torch import device
-from datetime import datetime
 
 from diffusion import GaussianDiffusion
 from unet import UNet
@@ -51,11 +48,11 @@ config_diff = {
 }
 
 #################################
-denoise_fun.load_state_dict(torch.load('src/generative_models/models_comp/dn_model_COMP2h02.pth', map_location=device))
+denoise_fun.load_state_dict(torch.load('models/dn_model_1.pth', map_location=device))
 denoise_fun.eval()
 
 diffusion = GaussianDiffusion(denoise_fun, image_size=(128,128),channels=1,loss_type='l1',conditional=True,config_diff=config_diff).to(device)  # Move the diffusion model to the GPU if available
-diffusion.load_state_dict(torch.load('src/generative_models/models_comp/diff_model_COMP2h02.pth', map_location=device))
+diffusion.load_state_dict(torch.load('models/diff_model_1.pth', map_location=device))
 
 print('Status: Diffusion and denoising model loaded successfully')
     
@@ -63,51 +60,22 @@ print('Status: Diffusion and denoising model loaded successfully')
 vis = Visualizations()
 embedding_gaf = EmbeddingGAF()
 nb = NoisyECGBuilder()
+#################################
 
-# # LOAD DATA
-# with open('afdb_slices_clean_COMPOSITE.pkl', 'rb') as f:
-#     clean_signals = pickle.load(f)                                              ### CLEAN SIGNAL
+data_HR = 'results/ardb/MA/m1_ma_snr_5/sig_HR.mat'
+data_SR = 'results/ardb/MA/m1_ma_snr_5/sig_SR_MA_5.mat'
 
-# print(len(clean_signals))
+#Load sig_HR from .mat file
+mat_HR = scipy.io.loadmat(data_HR)
+sig_HR = mat_HR['sig_HR'].squeeze()
 
-# sig_HR = clean_signals[52222][:128]
+mat_SR = scipy.io.loadmat(data_SR)
+sig_SR = mat_SR['sig_SR'].squeeze()
 
-# gaf_HR = embedding_gaf.ecg_to_GAF(sig_HR)
-
-# del clean_signals                           # REMOVE FROM MEMORY
-
-# with open('afdb_slices_noisy_COMPOSITE_snr3.pkl', 'rb') as f:
-#     noisy_signals = pickle.load(f)
-
-# sig_SR = noisy_signals[52222][:128]
-
-# gaf_SR = embedding_gaf.ecg_to_GAF(sig_SR)
-
-
-
-
-with open('ardb_slices_clean_COMP_SHUFFLE.pkl', 'rb') as f:
-    clean_signals = pickle.load(f)                                              ### CLEAN SIGNAL
-
-print(len(clean_signals))
-
-sig_HR = clean_signals[48000][:128]
 gaf_HR = embedding_gaf.ecg_to_GAF(sig_HR)
-
-del clean_signals                           # REMOVE FROM MEMORY
-
-with open('ardb_slices_noisy_COMP_snr5_SHUFFFLE.pkl', 'rb') as f:
-    noisy_signals = pickle.load(f)
-
-sig_SR = noisy_signals[48000][:128]
 gaf_SR = embedding_gaf.ecg_to_GAF(sig_SR)
 
-
 vis.plot_multiple_timeseries([sig_HR,sig_SR],['Original', 'Noisy'])
-
-# del noisy_signals                           # REMOVE FROM MEMORY 
-# vis.plot_multiple_timeseries([sig_HR, sig_SR], ['HR', 'SR'])
-
 
 ############################
 # INFERENCE (NOT IN TRAINING SET)
@@ -120,12 +88,6 @@ x = x.to(torch.float32)
 sampled_tensor = diffusion.p_sample_loop_single(x)
 sampled_tensor = sampled_tensor.unsqueeze(0)
 
-# SAVE 
-# hour, minute = datetime.now().hour, datetime.now().minute
-# formatted_time = f"{hour}h{minute:02d}"
-# save_tensor_sample = 'gaf_sampled_' + str(formatted_time) + '.pkl'
-# with open(save_tensor_sample,'wb') as f:
-#     pickle.dump(sampled_tensor, f)
 
 # RECOVER
 sig_rec = embedding_gaf.GAF_to_ecg(sampled_tensor)
@@ -136,15 +98,12 @@ filename_rec = 'sig_rec.mat'
 
 
 # Save the array to a .mat file
-scipy.io.savemat(filename_SR, {'sig_SR': sig_SR})
+filename_SR = 'sig_SR.mat'
 scipy.io.savemat(filename_HR, {'sig_HR': sig_HR})
 scipy.io.savemat(filename_rec, {'sig_rec': sig_rec})
 
+
 #####################
-#####################
-
-
-
 vis.visualize_tensor(gaf_HR,'Gaf HR')
 vis.visualize_tensor(gaf_SR,'Gaf SR')
 vis.visualize_tensor(sampled_tensor,'Reconstructed')
@@ -152,6 +111,6 @@ vis.visualize_tensor(sampled_tensor,'Reconstructed')
 vis.plot_multiple_timeseries([sig_HR, sig_SR, sig_rec], ['HR', 'SR', 'Recovered'])
 
 #####################
-#####################
+
 
 

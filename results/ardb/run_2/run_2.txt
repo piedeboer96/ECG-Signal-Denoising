@@ -1,6 +1,0 @@
-% run 2 --> 
-% muscle artificat noise 
-% at SNR=3
-
-Probably : dn_model_MA19h29
-

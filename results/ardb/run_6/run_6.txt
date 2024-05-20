@@ -1,8 +1,0 @@
-compsosite noise SNR 5
-
-signal
-
-sig_HR = clean_signals[55222][:128]
-
-MODEL:
-- COMP1h26
