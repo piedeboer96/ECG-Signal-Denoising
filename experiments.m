@@ -2,7 +2,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Load the clean signal
-data_HR = load('results/ardb/MA/m2_ma_snr_5/sig_HR.mat');
+data_HR = load('results/ardb/EM/m2_ma_snr_5/sig_HR.mat');
 sig_HR = data_HR.sig_HR; 
 
 % Load the noisy signal

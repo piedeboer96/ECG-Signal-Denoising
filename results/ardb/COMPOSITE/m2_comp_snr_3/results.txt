@@ -1,6 +1,8 @@
+DATASET=ARDB, NOISE TYPE=COMP, SNR NOISE LEVEL = 3
+
 RMSE (lower better)    PSNR (higher better)    MAE (lower better)
                        ___________________    ____________________    __________________
 
-    Wavelet (Paper)     {'RMSE: 0.2880'}          {[10.8119]}             {[0.2404]}    
-    LMS (MATLAB)        {'RMSE: 0.2201'}          {[13.1487]}             {[0.1560]}    
-    SR3                 {'RMSE: 0.1457'}          {[16.7305]}             {[0.0867]}
+    Wavelet      {'RMSE: 0.2880'}          {[10.8119]}             {[0.2404]}    
+    LMS        {'RMSE: 0.2201'}          {[13.1487]}             {[0.1560]}    
+    SR3_2                 {'RMSE: 0.1457'}          {[16.7305]}             {[0.0867]}
