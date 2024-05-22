@@ -1,16 +1,16 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Load the clean signal
-data_HR = load('run_2/sig_HR.mat');
+data_HR = load('results/ardb/EM/m1_em_snr_5/sig_HR.mat');
 sig_HR = data_HR.sig_HR; 
 
 % Load the noisy signal
-data_SR = load('run_2/sig_SR.mat');
+data_SR = load('results/ardb/EM/m1_em_snr_5/sig_SR.mat');
 sig_SR = data_SR.sig_SR; 
 
 % Load denoised signal from SR3
-data_rec = load('run_2/sig_rec.mat');
-sig_rec = data_rec.sig_rec;                 % denoise SR3 model
+data_rec = load('results/ardb/EM/m1_em_snr_5/sig_rec.mat');
+sig_rec = data_rec.sig_rec;                 % denoise SR3 model         % denoise SR3 model
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -36,7 +36,7 @@ d = sig_HR';
 [y1, err1, wts1] = lms(x,d);
 
 % RLS FILTERD
-[y,e] = rlsFilt(x,d)
+[y,e] = rls(x,d)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
