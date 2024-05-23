@@ -207,4 +207,13 @@ MAE_HYB = [MAE_HYB_snr_1, MAE_HYB_snr_3, MAE_HYB_snr_5];
 MAE_Model1 = [MAE_Model1_snr_1, MAE_Model1_snr_3, MAE_Model1_snr_5];
 MAE_Model2 = [MAE_Model2_snr_1, MAE_Model2_snr_3, MAE_Model2_snr_5];
 
-    
+% Grouped bar chart
+barWidth = 0.3; % Width of each bar
+bar(SNR_ratios, [MAE_HYB; MAE_Model1; MAE_Model2], barWidth, 'grouped');
+xlabel('SNR Ratio');
+ylabel('MAE');
+title('MAE Comparison');
+legend('HYB', 'Model 1', 'Model 2');
+xticks(SNR_ratios);
+ylim([0, max([MAE_HYB, MAE_Model1, MAE_Model2]) * 1.1]); % Adjust ylim for better visualization
+grid on;

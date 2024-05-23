@@ -196,10 +196,6 @@ legend('Original Signal', ['Denoised Signal (MAE: ', num2str(MAE_Model2_snr_5), 
 % Adjusting layout
 sgtitle('Comparison of Original and Denoised Signals');
 
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Define SNR values

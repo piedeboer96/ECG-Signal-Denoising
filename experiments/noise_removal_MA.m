@@ -75,7 +75,6 @@ y0_MA = filter(b, a, x0);
 y1_MA = filter(b, a, x1);
 y2_MA = filter(b, a, x2);
 
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % METHOD 2: Low Pass Filter
 
@@ -136,12 +135,8 @@ MAE_Model2_snr_1 = mean(abs(d' - aligned_REC_m2_snr_1'));
 MAE_Model2_snr_3 = mean(abs(d' - aligned_REC_m2_snr_3'));
 MAE_Model2_snr_5 = mean(abs(d' - aligned_REC_m2_snr_5'));
 
-
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Visualize {y0_MA, y1_MA, etc.}, {y0_LPF, etc.}, {aligned_REC_m1_snr_1, etc.}
-% and {aligned_REC_m2_snr_1, etc.} overlaid with the original signal in different subplots
+% Visualize
 
 figure;
 

@@ -62,53 +62,54 @@ embedding_gaf = EmbeddingGAF()
 nb = NoisyECGBuilder()
 #################################
 
-data_HR = 'results/ardb/EM/m1_em_snr_3/sig_HR.mat'
-data_SR = 'results/ardb/EM/m1_em_snr_3/sig_SR.mat'
+data_HR = 'results/ardb/EM/m1_em_snr_1/sig_HR.mat'
+data_SR = 'results/ardb/EM/m1_em_snr_1/sig_SR.mat'
 
 #Load sig_HR from .mat file
 mat_HR = scipy.io.loadmat(data_HR)
 sig_HR = mat_HR['sig_HR'].squeeze()
 
-# sig_SR_ma = nb.add_noise_to_ecg(sig_HR,'ma',1)
-# sig_SR = nb.add_noise_to_ecg(sig_SR_ma,'em',1)
-
+#Load sig_SR from .mat file
 mat_SR = scipy.io.loadmat(data_SR)
 sig_SR = mat_SR['sig_SR'].squeeze()
 
 gaf_HR = embedding_gaf.ecg_to_GAF(sig_HR)
 gaf_SR = embedding_gaf.ecg_to_GAF(sig_SR)
 
-vis.plot_multiple_timeseries([sig_HR,sig_SR],['Original', 'Noisy'])
+# vis.plot_multiple_timeseries([sig_HR,sig_SR],['Original', 'Noisy'])
 
 ############################
-# INFERENCE (NOT IN TRAINING SET)
+# INFERENCE 
+for i in range(5):
 
-# FLOAT.32
-x = gaf_SR.to("cpu")   
-x = x.to(torch.float32)
+    print('Sampling... run', i)
 
-# SAMPLE TENSOR
-sampled_tensor = diffusion.p_sample_loop_single(x)
-sampled_tensor = sampled_tensor.unsqueeze(0)
+    # FLOAT.32
+    x = gaf_SR.to("cpu")   
+    x = x.to(torch.float32)
 
-# RECOVER
-sig_rec = embedding_gaf.GAF_to_ecg(sampled_tensor)
+    # SAMPLE TENSOR
+    sampled_tensor = diffusion.p_sample_loop_single(x)
+    sampled_tensor = sampled_tensor.unsqueeze(0)
 
-filename_SR = 'sig_SR.mat'
-filename_HR = 'sig_HR.mat'
-filename_rec = 'sig_rec.mat'
+    # RECOVER
+    sig_rec = embedding_gaf.GAF_to_ecg(sampled_tensor)
 
-# Save the array to a .mat file
-scipy.io.savemat(filename_SR, {'sig_SR': sig_SR})
-scipy.io.savemat(filename_HR, {'sig_HR': sig_HR})
-scipy.io.savemat(filename_rec, {'sig_rec': sig_rec})
+    # filename_SR = 'sig_SR.mat'
+    # filename_HR = 'sig_HR.mat'
+    filename_rec = 'sig_rec' + str(i) + '.mat'
 
-#####################
-vis.visualize_tensor(gaf_HR,'Gaf HR')
-vis.visualize_tensor(gaf_SR,'Gaf SR')
-vis.visualize_tensor(sampled_tensor,'Reconstructed')
+    # Save the array to a .mat file
+    # scipy.io.savemat(filename_SR, {'sig_SR': sig_SR})
+    # scipy.io.savemat(filename_HR, {'sig_HR': sig_HR})
+    scipy.io.savemat(filename_rec, {'sig_rec': sig_rec})
 
-vis.plot_multiple_timeseries([sig_HR, sig_SR, sig_rec], ['HR', 'SR', 'Recovered'])
+    #####################
+    vis.visualize_tensor(gaf_HR,'Gaf HR')
+    vis.visualize_tensor(gaf_SR,'Gaf SR')
+    vis.visualize_tensor(sampled_tensor,'Reconstructed')
+
+    vis.plot_multiple_timeseries([sig_HR, sig_SR, sig_rec], ['HR', 'SR', 'Recovered'])
 
 #####################
 
