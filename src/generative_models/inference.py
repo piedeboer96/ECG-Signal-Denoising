@@ -1,6 +1,7 @@
 import torch
 import scipy.io
 from torch import device
+import os
 
 from diffusion import GaussianDiffusion
 from unet import UNet
@@ -48,11 +49,11 @@ config_diff = {
 }
 
 #################################
-denoise_fun.load_state_dict(torch.load('models/dn_model_COMP2h02.pth', map_location=device))
+denoise_fun.load_state_dict(torch.load('models/dn_model_COMP_AF17h25.pth', map_location=device))
 denoise_fun.eval()
 
 diffusion = GaussianDiffusion(denoise_fun, image_size=(128,128),channels=1,loss_type='l1',conditional=True,config_diff=config_diff).to(device)  # Move the diffusion model to the GPU if available
-diffusion.load_state_dict(torch.load('models/diff_model_COMP2h02.pth', map_location=device))
+diffusion.load_state_dict(torch.load('models/diff_model_COMP_AF17h25.pth', map_location=device))
 
 print('Status: Diffusion and denoising model loaded successfully')
     
@@ -62,54 +63,78 @@ embedding_gaf = EmbeddingGAF()
 nb = NoisyECGBuilder()
 #################################
 
-data_HR = 'results/ardb/EM/m1_em_snr_1/sig_HR.mat'
-data_SR = 'results/ardb/EM/m1_em_snr_1/sig_SR.mat'
+data_HR_list = ['results/ardb/EM/m1_em_snr_3/sig_HR.mat', 'results/ardb/EM/m1_em_snr_5/sig_HR.mat',
+                'results/ardb/MA/m1_ma_snr_1/sig_HR.mat','results/ardb/MA/m1_ma_snr_3/sig_HR.mat','results/ardb/MA/m1_ma_snr_5/sig_HR.mat',
+                'results/ardb/COMPOSITE/m1_comp_snr_1/sig_HR.mat','results/ardb/COMPOSITE/m1_comp_snr_3/sig_HR.mat','results/ardb/COMPOSITE/m1_comp_snr_5/sig_HR.mat',
+                'results/af/m1_comp_snr_3/sig_HR.mat', 'results/af/m1_comp_snr_5/sig_HR.mat',
+                'results/ardb/EM/m1_em_snr_1/sig_HR.mat']
 
-#Load sig_HR from .mat file
-mat_HR = scipy.io.loadmat(data_HR)
-sig_HR = mat_HR['sig_HR'].squeeze()
+data_SR_list = ['results/ardb/EM/m1_em_snr_3/sig_SR.mat', 'results/ardb/EM/m1_em_snr_5/sig_SR.mat',
+                'results/ardb/MA/m1_ma_snr_1/sig_SR.mat','results/ardb/MA/m1_ma_snr_3/sig_SR.mat','results/ardb/MA/m1_ma_snr_5/sig_SR.mat',
+                'results/ardb/COMPOSITE/m1_comp_snr_1/sig_SR.mat','results/ardb/COMPOSITE/m1_comp_snr_3/sig_SR.mat','results/ardb/COMPOSITE/m1_comp_snr_5/sig_SR.mat',
+                'results/af/m1_comp_snr_3/sig_SR.mat', 'results/af/m1_comp_snr_5/sig_SR.mat', 
+                'results/ardb/EM/m1_em_snr_1/sig_SR.mat']
 
-#Load sig_SR from .mat file
-mat_SR = scipy.io.loadmat(data_SR)
-sig_SR = mat_SR['sig_SR'].squeeze()
 
-gaf_HR = embedding_gaf.ecg_to_GAF(sig_HR)
-gaf_SR = embedding_gaf.ecg_to_GAF(sig_SR)
+for path in data_HR_list:
+    print(path)
+    if os.path.exists(path):
+        pass  # Do nothing if the path exists
+    else:
+        print(f"Path does not exist: {path}")
 
-# vis.plot_multiple_timeseries([sig_HR,sig_SR],['Original', 'Noisy'])
+for path in data_SR_list:
+    print(path)
+    if os.path.exists(path):
+        pass  # Do nothing if the path exists
+    else:
+        print(f"Path does not exist: {path}")
 
-############################
-# INFERENCE 
-for i in range(5):
 
-    print('Sampling... run', i)
+for j in range(len(data_HR_list)):
 
-    # FLOAT.32
-    x = gaf_SR.to("cpu")   
-    x = x.to(torch.float32)
+    data_HR = data_HR_list[j]
+    data_SR = data_SR_list[j]
 
-    # SAMPLE TENSOR
-    sampled_tensor = diffusion.p_sample_loop_single(x)
-    sampled_tensor = sampled_tensor.unsqueeze(0)
+    print('Data HR', data_HR)
+    print('Data SR', data_SR)
 
-    # RECOVER
-    sig_rec = embedding_gaf.GAF_to_ecg(sampled_tensor)
+    #Load sig_HR from .mat file
+    mat_HR = scipy.io.loadmat(data_HR)
+    sig_HR = mat_HR['sig_HR'].squeeze()
 
-    # filename_SR = 'sig_SR.mat'
-    # filename_HR = 'sig_HR.mat'
-    filename_rec = 'sig_rec' + str(i) + '.mat'
+    #Load sig_SR from .mat file
+    mat_SR = scipy.io.loadmat(data_SR)
+    sig_SR = mat_SR['sig_SR'].squeeze()
 
-    # Save the array to a .mat file
-    # scipy.io.savemat(filename_SR, {'sig_SR': sig_SR})
-    # scipy.io.savemat(filename_HR, {'sig_HR': sig_HR})
-    scipy.io.savemat(filename_rec, {'sig_rec': sig_rec})
+    gaf_HR = embedding_gaf.ecg_to_GAF(sig_HR)
+    gaf_SR = embedding_gaf.ecg_to_GAF(sig_SR)
 
-    #####################
-    vis.visualize_tensor(gaf_HR,'Gaf HR')
-    vis.visualize_tensor(gaf_SR,'Gaf SR')
-    vis.visualize_tensor(sampled_tensor,'Reconstructed')
 
-    vis.plot_multiple_timeseries([sig_HR, sig_SR, sig_rec], ['HR', 'SR', 'Recovered'])
+    ############################
+    # INFERENCE 
+    for i in range(5):
+
+        print('Sampling... run', i)
+
+        # FLOAT.32
+        x = gaf_SR.to("cpu")   
+        x = x.to(torch.float32)
+
+        # SAMPLE TENSOR
+        sampled_tensor = diffusion.p_sample_loop_single(x)
+        sampled_tensor = sampled_tensor.unsqueeze(0)
+
+        # RECOVER SIGNAL
+        sig_rec = embedding_gaf.GAF_to_ecg(sampled_tensor)
+        
+        # SAVE
+        filename_rec = 'm2_' + str(j) + 'sig_rec' + str(i) + '.mat'
+
+        print('Saved as:', filename_rec)
+
+        # Save the array to a .mat file
+        scipy.io.savemat(filename_rec, {'sig_rec': sig_rec})
 
 #####################
 

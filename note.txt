@@ -1,2 +1,0 @@
-
-We disregard wavelet, since this is not a go-to method for noise removal beyond gaussian noise.

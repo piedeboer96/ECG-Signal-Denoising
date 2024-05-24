@@ -21,3 +21,16 @@ COMPOSITE
 
 GENERAL
 % - Signal Processing Techniques: A Practical Guide (explanation)
+
+
+
+
+
+% LITERATURE
+%   - Marzog, H. A., Abd, H. J., & Yonis, A. Z. (2022). Noise removal of ECG
+%  signal using multi-techniques. IEEE. --> ADAPTIVE FILTER LMS AND RLS 
+%  - M. Milanesi, N. Martini, N. Vanello, V. Positano, M. F. Santarelli, R.
+%  Paradiso, D. De Rossi and L. Landini. (2006) Multichannel Techniques for
+%  Motion Artifacts Removal from Electrocardiographic Signals --> ADAPTIVE FILLTER LMS
+%  - Kher, R. (2019). Signal Processing Techniques for Removing Noise from
+%  ECG Signals. 2019. --> ADAPTIVE FILTER LMS
