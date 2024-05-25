@@ -39,7 +39,6 @@ denoise_fun = UNet(
     image_size=128
 ).to(device)  # Move the denoising model to the GPU if available
 
-
 # Noise schedule from SR3 Github
 config_diff = {
     'beta_start': 1e-6,
