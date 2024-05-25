@@ -47,11 +47,11 @@ config_diff = {
 }
 
 #################################
-denoise_fun.load_state_dict(torch.load('models/dn_model_COMP2h02.pth', map_location=device))
+denoise_fun.load_state_dict(torch.load('models/dn_model_COMP_AF17h25.pth', map_location=device))
 denoise_fun.eval()
 
 diffusion = GaussianDiffusion(denoise_fun, image_size=(128,128),channels=1,loss_type='l1',conditional=True,config_diff=config_diff).to(device)  # Move the diffusion model to the GPU if available
-diffusion.load_state_dict(torch.load('models/diff_model_COMP2h02.pth', map_location=device))
+diffusion.load_state_dict(torch.load('models/diff_model_COMP_AF17h25.pth', map_location=device))
 
 print('Status: Diffusion and denoising model loaded successfully')
     
