@@ -34,11 +34,35 @@ function [mean_values, std_dev_values] = compute_avg_and_std_dev_MAE(clean_signa
     num_signals = length(reconstructed_signals);
     MAE_values = zeros(1, num_signals);
     for i = 1:num_signals
-        MAE_values(i) = mean(abs(clean_signal' - reconstructed_signals{i}'));
+        MAE_values(i) = mean(abs(clean_signal - reconstructed_signals{i}));
     end
-    mean_values = mean(MAE_values);
+    mean_values = mean(MAE_values)
     std_dev_values = std(MAE_values);
 end
+
+function [mean_values, std_dev_values] = compute_avg_and_std_dev_RMSE(clean_signal, reconstructed_signals)
+    % Function to compute MAE from clean and reconstructions, and calculate mean and standard deviation
+    num_signals = length(reconstructed_signals);
+    RMSE_values = zeros(1, num_signals);
+    for i = 1:num_signals
+        RMSE_values(i) = rmse(reconstructed_signals{i}, clean_signal);
+    end
+    mean_values = mean(RMSE_values);
+    std_dev_values = std(RMSE_values);
+end
+
+function [mean_values, std_dev_values] = compute_avg_and_std_dev_PSNR(clean_signal, reconstructed_signals)
+    num_signals = length(reconstructed_signals);
+    PSNR_values = zeros(1, num_signals);
+    for i = 1:num_signals
+        PSNR_values(i) = psnr(reconstructed_signals{i}, clean_signal);
+    end
+    mean_values = mean(PSNR_values);
+    std_dev_values = std(PSNR_values);
+end
+
+
+
 
 function y_LPF = low_pass_filter(x)
     % Function to use low pass filter
@@ -142,80 +166,166 @@ m2_y3_list = load_and_align_signals(m2_snr_15, d);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% Apply LFP
+% Apply LMS Adaptive Filter
 y0_LMS = lms_filter(x0,d);
 y1_LMS = lms_filter(x1,d);
 y2_LMS = lms_filter(x2,d);
 y3_LMS = lms_filter(x3,d);
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-% Visualize the results
-figure;
-
-% Plot clean signal
-subplot(4, 1, 1);
-plot(d);
-title('Clean Signal');
-xlabel('Sample Index');
-ylabel('Amplitude');
-
-% Plot hybrid_lpf_lms signals
-subplot(3, 1, 2);
-hold on;
-plot(y0_LMS);
-plot(y1_LMS);
-plot(y2_LMS);
-plot(y3_LMS);
-title('LMS');
-xlabel('Sample Index');
-ylabel('Amplitude');
-legend('SNR 0', 'SNR 5', 'SNR 10', 'SNR 15');
-hold off;
-
-% Plot all reconstructions for m1_y{i}_list for i=0,1,2,3
-subplot(3, 1, 3);
-hold on;
-for i = 1:numel(m1_y0_list)
-    plot(m1_y0_list{i}, 'DisplayName', 'SNR 0');
-end
-for i = 1:numel(m1_y1_list)
-    plot(m1_y1_list{i}, 'DisplayName', 'SNR 5');
-end
-for i = 1:numel(m1_y2_list)
-    plot(m1_y2_list{i}, 'DisplayName', 'SNR 10');
-end
-for i = 1:numel(m1_y3_list)
-    plot(m1_y3_list{i}, 'DisplayName', 'SNR 15');
-end
-hold off;
-title('Model 1');
-xlabel('Sample Index');
-ylabel('Amplitude');
-legend;
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Model 1 - MAE computation
-mae_m1_snr_00 = mae(d - m1_y0_list{1});
-mae_m1_snr_05 = mae(d - m1_y1_list{1});
-mae_m1_snr_10 = mae(d - m1_y2_list{1});
-mae_m1_snr_15 = mae(d - m1_y3_list{1});
+% Model 1 - MAE and std.dev computation
+[mae_m1_snr_00, std_m1_snr_00] = compute_avg_and_std_dev_MAE(d, m1_y0_list);
+[mae_m1_snr_05, std_m1_snr_05] = compute_avg_and_std_dev_MAE(d, m1_y1_list);
+[mae_m1_snr_10, std_m1_snr_10] = compute_avg_and_std_dev_MAE(d, m1_y2_list);
+[mae_m1_snr_15, std_m1_snr_15] = compute_avg_and_std_dev_MAE(d, m1_y3_list);
 
-% Hybrid (LPF -> LMS) - MAE computation]
-mae_lms_snr_00 = mae(d - y0_LMS);
-mae_lms_snr_05 = mae(d - y1_LMS);
-mae_lms_snr_10 = mae(d - y2_LMS);
-mae_lms_snr_15 = mae(d - y3_LMS);
+% Model 2 - MAE and std. dev computation
+[mae_m2_snr_00, std_m2_snr_00] = compute_avg_and_std_dev_MAE(d, m2_y0_list);
+[mae_m2_snr_05, std_m2_snr_05] = compute_avg_and_std_dev_MAE(d, m2_y1_list);
+[mae_m2_snr_10, std_m2_snr_10] = compute_avg_and_std_dev_MAE(d, m2_y2_list);
+[mae_m2_snr_15, std_m2_snr_15] = compute_avg_and_std_dev_MAE(d, m2_y3_list);
+
+% Hybrid (LPF -> LMS) - MAE computation
+mae_lms_snr_00 = mean(abs(d - y0_LMS));
+mae_lms_snr_05 = mean(abs(d - y1_LMS));
+mae_lms_snr_10 = mean(abs(d - y2_LMS));
+mae_lms_snr_15 = mean(abs(d - y3_LMS));
 
 % Visualize the MAE results in grouped bar charts
 snrs = [0, 5, 10, 15];
 mae_model_1 = [mae_m1_snr_00, mae_m1_snr_05, mae_m1_snr_10, mae_m1_snr_15];
+std_model_1 = [std_m1_snr_00, std_m1_snr_05, std_m1_snr_10, std_m1_snr_15];
+mae_model_2 = [mae_m2_snr_00, mae_m2_snr_05, mae_m2_snr_10, mae_m2_snr_15];
+std_model_2 = [std_m2_snr_00, std_m2_snr_05, std_m2_snr_10, std_m2_snr_15];
 mae_LMS = [mae_lms_snr_00, mae_lms_snr_05, mae_lms_snr_10, mae_lms_snr_15];
 
 figure;
-bar(snrs, [mae_LMS', mae_model_1']);
+hold on;
+b = bar(snrs, [mae_LMS', mae_model_1', mae_model_2']);
+% Adjust the position of the error bars to be centered on the Model 1 and Model 2 bars
+nbars = size(b, 2);
+x = nan(nbars, length(snrs));
+for i = 1:nbars
+    x(i,:) = b(i).XEndPoints;
+end
+% Plot the error bars
+errorbar(x(2,:), mae_model_1, std_model_1, 'k', 'linestyle', 'none', 'CapSize', 10); % Adding error bars to Model 1 bars
+errorbar(x(3,:), mae_model_2, std_model_2, 'r', 'linestyle', 'none', 'CapSize', 10); % Adding error bars to Model 2 bars
+
+% Set x-axis ticks and labels
+set(gca, 'XTick', snrs);
 xlabel('SNR');
 ylabel('Mean Absolute Error (MAE)');
-title('Mean Absolute Error (MAE) for Different Models and SNRs');
-legend('LMS','Model 1');
+title('Electrode Motion Noise Removal on ARDB');
+legend('LMS', 'Model 1 (ARDB only)', 'Model 2 (AF Retrained');
 grid on;
+hold off;
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% We did investigate other metrics namely RMSE and PSNR
+% However, these did not offer a lot of additional insights.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% OTHER METRICS ......  RMSE
+
+% [rmse_m1_snr_00, std_m1_snr_00] = compute_avg_and_std_dev_RMSE(d, m1_y0_list);
+% [rmse_m1_snr_05, std_m1_snr_05] = compute_avg_and_std_dev_RMSE(d, m1_y1_list);
+% [rmse_m1_snr_10, std_m1_snr_10] = compute_avg_and_std_dev_RMSE(d, m1_y2_list);
+% [rmse_m1_snr_15, std_m1_snr_15] = compute_avg_and_std_dev_RMSE(d, m1_y3_list);
+% 
+% % Model 2 - MAE and std. dev computation
+% [rmse_m2_snr_00, std_m2_snr_00] = compute_avg_and_std_dev_RMSE(d, m2_y0_list);
+% [rmse_m2_snr_05, std_m2_snr_05] = compute_avg_and_std_dev_RMSE(d, m2_y1_list);
+% [rmse_m2_snr_10, std_m2_snr_10] = compute_avg_and_std_dev_RMSE(d, m2_y2_list);
+% [rmse_m2_snr_15, std_m2_snr_15] = compute_avg_and_std_dev_RMSE(d, m2_y3_list);
+% 
+% % Hybrid (LPF -> LMS) - MAE computation
+% rmse_lms_snr_00 = rmse(y0_LMS, d);
+% rmse_lms_snr_05 = rmse(y1_LMS, d);
+% rmse_lms_snr_10 = rmse(y2_LMS, d);
+% rmse_lms_snr_15 = rmse(y3_LMS, d);
+% 
+% % Visualize the MAE results in grouped bar charts
+% snrs = [0, 5, 10, 15];
+% rmse_model_1 = [rmse_m1_snr_00, rmse_m1_snr_05, rmse_m1_snr_10, rmse_m1_snr_15];
+% std_model_1 = [std_m1_snr_00, std_m1_snr_05, std_m1_snr_10, std_m1_snr_15];
+% rmse_model_2 = [rmse_m2_snr_00, rmse_m2_snr_05, rmse_m2_snr_10, rmse_m2_snr_15];
+% std_model_2 = [std_m2_snr_00, std_m2_snr_05, std_m2_snr_10, std_m2_snr_15];
+% rmse_LMS = [rmse_lms_snr_00, rmse_lms_snr_05, rmse_lms_snr_10, rmse_lms_snr_15];
+% 
+% figure;
+% hold on;
+% b = bar(snrs, [rmse_LMS', rmse_model_1', rmse_model_2']);
+% % Adjust the position of the error bars to be centered on the Model 1 and Model 2 bars
+% nbars = size(b, 2);
+% x = nan(nbars, length(snrs));
+% for i = 1:nbars
+%     x(i,:) = b(i).XEndPoints;
+% end
+% % Plot the error bars
+% errorbar(x(2,:), rmse_model_1, std_model_1, 'k', 'linestyle', 'none', 'CapSize', 10); % Adding error bars to Model 1 bars
+% errorbar(x(3,:), rmse_model_2, std_model_2, 'r', 'linestyle', 'none', 'CapSize', 10); % Adding error bars to Model 2 bars
+% 
+% % Set x-axis ticks and labels
+% set(gca, 'XTick', snrs);
+% xlabel('SNR');
+% ylabel('Root Mean Square Error (RMSE)');
+% title('Electrode Motion Noise Removal on ARDB');
+% legend('LMS', 'Model 1 (ARDB only)', 'Model 2 (AF Retrained');
+% grid on;
+% hold off;
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% OTHER METRICS ......  PSNR
+
+% [psnr_m1_snr_00, std_m1_snr_00] = compute_avg_and_std_dev_PSNR(d, m1_y0_list);
+% [psnr_m1_snr_05, std_m1_snr_05] = compute_avg_and_std_dev_PSNR(d, m1_y1_list);
+% [psnr_m1_snr_10, std_m1_snr_10] = compute_avg_and_std_dev_PSNR(d, m1_y2_list);
+% [psnr_m1_snr_15, std_m1_snr_15] = compute_avg_and_std_dev_PSNR(d, m1_y3_list);
+% 
+% % Model 2 - MAE and std. dev computation
+% [psnr_m2_snr_00, std_m2_snr_00] = compute_avg_and_std_dev_PSNR(d, m2_y0_list);
+% [psnr_m2_snr_05, std_m2_snr_05] = compute_avg_and_std_dev_PSNR(d, m2_y1_list);
+% [psnr_m2_snr_10, std_m2_snr_10] = compute_avg_and_std_dev_PSNR(d, m2_y2_list);
+% [psnr_m2_snr_15, std_m2_snr_15] = compute_avg_and_std_dev_PSNR(d, m2_y3_list);
+% 
+% % Hybrid (LPF -> LMS) - MAE computation
+% psnr_lms_snr_00 = psnr(y0_LMS, d);
+% psnr_lms_snr_05 = psnr(y1_LMS, d);
+% psnr_lms_snr_10 = psnr(y2_LMS, d);
+% psnr_lms_snr_15 = psnr(y3_LMS, d);
+% 
+% % Visualize the MAE results in grouped bar charts
+% snrs = [0, 5, 10, 15];
+% psnr_model_1 = [psnr_m1_snr_00, psnr_m1_snr_05, psnr_m1_snr_10, psnr_m1_snr_15];
+% std_model_1 = [std_m1_snr_00, std_m1_snr_05, std_m1_snr_10, std_m1_snr_15];
+% psnr_model_2 = [psnr_m2_snr_00, psnr_m2_snr_05, psnr_m2_snr_10, psnr_m2_snr_15];
+% std_model_2 = [std_m2_snr_00, std_m2_snr_05, std_m2_snr_10, std_m2_snr_15];
+% psnr_LMS = [psnr_lms_snr_00, psnr_lms_snr_05, psnr_lms_snr_10, psnr_lms_snr_15];
+% 
+% figure;
+% hold on;
+% b = bar(snrs, [psnr_LMS', psnr_model_1', psnr_model_2']);
+% % Adjust the position of the error bars to be centered on the Model 1 and Model 2 bars
+% nbars = size(b, 2);
+% x = nan(nbars, length(snrs));
+% for i = 1:nbars
+%     x(i,:) = b(i).XEndPoints;
+% end
+% % Plot the error bars
+% errorbar(x(2,:), psnr_model_1, std_model_1, 'k', 'linestyle', 'none', 'CapSize', 10); % Adding error bars to Model 1 bars
+% errorbar(x(3,:), psnr_model_2, std_model_2, 'r', 'linestyle', 'none', 'CapSize', 10); % Adding error bars to Model 2 bars
+% 
+% % Set x-axis ticks and labels
+% set(gca, 'XTick', snrs);
+% xlabel('SNR');
+% ylabel('Peak Signal to Noise Ratio (PSNR)');
+% title('Electrode Motion Noise Removal on ARDB');
+% legend('LMS', 'Model 1 (ARDB only)', 'Model 2 (AF Retrained');
+% grid on;
+% hold off;

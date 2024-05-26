@@ -34,9 +34,9 @@ function [mean_values, std_dev_values] = compute_avg_and_std_dev_MAE(clean_signa
     num_signals = length(reconstructed_signals);
     MAE_values = zeros(1, num_signals);
     for i = 1:num_signals
-        MAE_values(i) = mean(abs(clean_signal' - reconstructed_signals{i}'));
+        MAE_values(i) = mean(abs(clean_signal - reconstructed_signals{i}));
     end
-    mean_values = mean(MAE_values);
+    mean_values = mean(MAE_values)
     std_dev_values = std(MAE_values);
 end
 
@@ -100,25 +100,25 @@ end
 d = load('noisy_samples/ardb_sig_HR.mat').sig_HR;
 
 % Noise sample
-noise = load('noisy_samples/slices/ma_slice_ind.mat');
+noise = load('noisy_samples/slices/em_slice_ind.mat');
 
 % Noisy Signals at SNR 0, 5, 10 and 15
-x0 = load('noisy_samples/samples/ardb_sig_SR_ma_snr_00.mat').ardb_sig_SR_ma_snr_00;
-x1 = load('noisy_samples/samples/ardb_sig_SR_ma_snr_05.mat').ardb_sig_SR_ma_snr_05;
-x2 = load('noisy_samples/samples/ardb_sig_SR_ma_snr_10.mat').ardb_sig_SR_ma_snr_10;
-x3 = load('noisy_samples/samples/ardb_sig_SR_ma_snr_15.mat').ardb_sig_SR_ma_snr_15;
+x0 = load('noisy_samples/samples/ardb_sig_SR_em_snr_00.mat').ardb_sig_SR_em_snr_00;
+x1 = load('noisy_samples/samples/ardb_sig_SR_em_snr_05.mat').ardb_sig_SR_em_snr_05;
+x2 = load('noisy_samples/samples/ardb_sig_SR_em_snr_10.mat').ardb_sig_SR_em_snr_10;
+x3 = load('noisy_samples/samples/ardb_sig_SR_em_snr_15.mat').ardb_sig_SR_em_snr_15;
 
 % Model 1 - Reconstructions
-m1_snr_00 = 'reconstructions/model_1/ardb_ma_snr_00';
-m1_snr_05 = 'reconstructions/model_1/ardb_ma_snr_05';
-m1_snr_10 = 'reconstructions/model_1/ardb_ma_snr_10';
-m1_snr_15 = 'reconstructions/model_1/ardb_ma_snr_15';
+m1_snr_00 = 'reconstructions/model_1/ardb_em_snr_00';
+m1_snr_05 = 'reconstructions/model_1/ardb_em_snr_05';
+m1_snr_10 = 'reconstructions/model_1/ardb_em_snr_10';
+m1_snr_15 = 'reconstructions/model_1/ardb_em_snr_15';
 
 % Model 2 - Reconstructions
-m2_snr_00 = 'reconstructions/model_2/ardb_ma_snr_00';
-m2_snr_05 = 'reconstructions/model_2/ardb_ma_snr_05';
-m2_snr_10 = 'reconstructions/model_2/ardb_ma_snr_10';
-m2_snr_15 = 'reconstructions/model_2/ardb_ma_snr_15';
+m2_snr_00 = 'reconstructions/model_2/ardb_em_snr_00';
+m2_snr_05 = 'reconstructions/model_2/ardb_em_snr_05';
+m2_snr_10 = 'reconstructions/model_2/ardb_em_snr_10';
+m2_snr_15 = 'reconstructions/model_2/ardb_em_snr_15';
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -142,119 +142,69 @@ m2_y3_list = load_and_align_signals(m2_snr_15, d);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% Apply Moving Average Filter
-y0_MA = moving_average_filter(x0);
-y1_MA = moving_average_filter(x1);
-y2_MA = moving_average_filter(x2);
-y3_MA = moving_average_filter(x3);
-
-% Apply LPF
+% Apply LFP
 y0_LPF = low_pass_filter(x0);
 y1_LPF = low_pass_filter(x1);
 y2_LPF = low_pass_filter(x2);
 y3_LPF = low_pass_filter(x3);
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-% Visualize the results
-figure;
-
-% Plot clean signal
-subplot(4, 1, 1);
-plot(d);
-title('Clean Signal');
-xlabel('Sample Index');
-ylabel('Amplitude');
-
-% Plot hybrid_lpf_lms signals
-subplot(4, 1, 2);
-hold on;
-plot(y0_MA);
-plot(y1_MA);
-plot(y2_MA);
-plot(y3_MA);
-title('Moving Average');
-xlabel('Sample Index');
-ylabel('Amplitude');
-legend('SNR 0', 'SNR 5', 'SNR 10', 'SNR 15');
-hold off;
-
-subplot(4, 1, 3);
-hold on;
-plot(y0_LPF);
-plot(y1_LPF);
-plot(y2_LPF);
-plot(y3_LPF);clo 
-title('Moving Average');
-xlabel('Sample Index');
-ylabel('Amplitude');
-legend('SNR 0', 'SNR 5', 'SNR 10', 'SNR 15');
-hold off;
-
-
-% Plot hybrid_lpf_lms signals
-subplot(4, 1, 2);
-hold on;
-plot(y0_LPF);
-plot(y1_LPF);
-plot(y2_LPF);
-plot(y3_LPF);
-title('Moving Average');
-xlabel('Sample Index');
-ylabel('Amplitude');
-legend('SNR 0', 'SNR 5', 'SNR 10', 'SNR 15');
-hold off;
-
-% Plot all reconstructions for m1_y{i}_list for i=0,1,2,3
-subplot(4, 1, 4);
-hold on;
-for i = 1:numel(m1_y0_list)
-    plot(m1_y0_list{i}, 'DisplayName', 'SNR 0');
-end
-for i = 1:numel(m1_y1_list)
-    plot(m1_y1_list{i}, 'DisplayName', 'SNR 5');
-end
-for i = 1:numel(m1_y2_list)
-    plot(m1_y2_list{i}, 'DisplayName', 'SNR 10');
-end
-for i = 1:numel(m1_y3_list)
-    plot(m1_y3_list{i}, 'DisplayName', 'SNR 15');
-end
-hold off;
-title('Model 1');
-xlabel('Sample Index');
-ylabel('Amplitude');
-legend;
+y0_MA = moving_average_filter(x0);
+y1_MA = moving_average_filter(x1);
+y2_MA = moving_average_filter(x2);
+y3_MA = moving_average_filter(x3);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Model 1 - MAE computation
-mae_m1_snr_00 = mae(d - m1_y0_list{1});
-mae_m1_snr_05 = mae(d - m1_y1_list{1});
-mae_m1_snr_10 = mae(d - m1_y2_list{1});
-mae_m1_snr_15 = mae(d - m1_y3_list{1});
+% Model 1 - MAE and std.dev computation
+[mae_m1_snr_00, std_m1_snr_00] = compute_avg_and_std_dev_MAE(d, m1_y0_list);
+[mae_m1_snr_05, std_m1_snr_05] = compute_avg_and_std_dev_MAE(d, m1_y1_list);
+[mae_m1_snr_10, std_m1_snr_10] = compute_avg_and_std_dev_MAE(d, m1_y2_list);
+[mae_m1_snr_15, std_m1_snr_15] = compute_avg_and_std_dev_MAE(d, m1_y3_list);
 
-% Moving Average - MAE computation]
-mae_ma_snr_00 = mae(d - y0_MA);
-mae_ma_snr_05 = mae(d - y1_MA);
-mae_ma_snr_10 = mae(d - y2_MA);
-mae_ma_snr_15 = mae(d - y3_MA);
+% Model 2 - MAE and std. dev computation
+[mae_m2_snr_00, std_m2_snr_00] = compute_avg_and_std_dev_MAE(d, m2_y0_list);
+[mae_m2_snr_05, std_m2_snr_05] = compute_avg_and_std_dev_MAE(d, m2_y1_list);
+[mae_m2_snr_10, std_m2_snr_10] = compute_avg_and_std_dev_MAE(d, m2_y2_list);
+[mae_m2_snr_15, std_m2_snr_15] = compute_avg_and_std_dev_MAE(d, m2_y3_list);
 
-% LPF - MAE computation]
-mae_lpf_snr_00 = mae(d - y0_LPF);
-mae_lpf_snr_05 = mae(d - y1_LPF);
-mae_lpf_snr_10 = mae(d - y2_LPF);
-mae_lpf_snr_15 = mae(d - y3_LPF);
+% Moving Average (LPF)
+mae_ma_snr_00 = mean(abs(d - y0_MA));
+mae_ma_snr_05 = mean(abs(d - y1_MA));
+mae_ma_snr_10 = mean(abs(d - y2_MA));
+mae_ma_snr_15 = mean(abs(d - y3_MA));
+
+% Hybrid (LPF -> LMS) - MAE computation
+mae_lpf_snr_00 = mean(abs(d - y0_LPF));
+mae_lpf_snr_05 = mean(abs(d - y1_LPF));
+mae_lpf_snr_10 = mean(abs(d - y2_LPF));
+mae_lpf_snr_15 = mean(abs(d - y3_LPF));
 
 % Visualize the MAE results in grouped bar charts
 snrs = [0, 5, 10, 15];
 mae_model_1 = [mae_m1_snr_00, mae_m1_snr_05, mae_m1_snr_10, mae_m1_snr_15];
+std_model_1 = [std_m1_snr_00, std_m1_snr_05, std_m1_snr_10, std_m1_snr_15];
+mae_model_2 = [mae_m2_snr_00, mae_m2_snr_05, mae_m2_snr_10, mae_m2_snr_15];
+std_model_2 = [std_m2_snr_00, std_m2_snr_05, std_m2_snr_10, std_m2_snr_15];
 mae_MA = [mae_ma_snr_00, mae_ma_snr_05, mae_ma_snr_10, mae_ma_snr_15];
 mae_LPF = [mae_lpf_snr_00, mae_lpf_snr_05, mae_lpf_snr_10, mae_lpf_snr_15];
 
 figure;
-bar(snrs, [mae_MA', mae_LPF', mae_model_1']);
+hold on;
+b = bar(snrs, [mae_MA', mae_LPF', mae_model_1', mae_model_2']);
+% Adjust the position of the error bars to be centered on the Model 1 and Model 2 bars
+nbars = size(b, 2);
+x = nan(nbars, length(snrs));
+for i = 1:nbars
+    x(i,:) = b(i).XEndPoints;
+end
+% Plot the error bars
+errorbar(x(3,:), mae_model_1, std_model_1, 'k', 'linestyle', 'none', 'CapSize', 10); % Adding error bars to Model 1 bars
+errorbar(x(4,:), mae_model_2, std_model_2, 'r', 'linestyle', 'none', 'CapSize', 10); % Adding error bars to Model 2 bars
+
+% Set x-axis ticks and labels
+set(gca, 'XTick', snrs, 'XTickLabel', snrs);
 xlabel('SNR');
 ylabel('Mean Absolute Error (MAE)');
-title('Mean Absolute Error (MAE) for Different Models and SNRs');
-legend('MA','LPF', 'Model 1');
+title('Muscle Artifact Noise for ARDB');
+legend('Moving Average (n=4)', 'LPF', 'Model 1 (ARDB only)', 'Model 2 (AF Retrained)');
 grid on;
+hold off;

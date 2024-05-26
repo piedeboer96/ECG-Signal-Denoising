@@ -151,79 +151,17 @@ y3_dwt = wavelet_denoise(x3);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% Visualize the results
-figure;
+% Model 1 - MAE and std.dev computation
+[mae_m1_snr_00, std_m1_snr_00] = compute_avg_and_std_dev_MAE(d, m1_y0_list);
+[mae_m1_snr_05, std_m1_snr_05] = compute_avg_and_std_dev_MAE(d, m1_y1_list);
+[mae_m1_snr_10, std_m1_snr_10] = compute_avg_and_std_dev_MAE(d, m1_y2_list);
+[mae_m1_snr_15, std_m1_snr_15] = compute_avg_and_std_dev_MAE(d, m1_y3_list);
 
-% Plot clean signal
-subplot(4, 1, 1);
-plot(d);
-title('Clean Signal');
-xlabel('Sample Index');
-ylabel('Amplitude');
-
-% Plot hybrid_lpf_lms signals
-subplot(4, 1, 2);
-hold on;
-plot(y0_hybrid_lpf_lms);
-plot(y1_hybrid_lpf_lms);
-plot(y2_hybrid_lpf_lms);
-plot(y3_hybrid_lpf_lms);
-title('Hybrid (LPF -> LMS)');
-xlabel('Sample Index');
-ylabel('Amplitude');
-legend('SNR 0', 'SNR 5', 'SNR 10', 'SNR 15');
-hold off;
-
-% Plot hybrid_lms_lpf signals
-subplot(4, 1, 3);
-hold on;
-plot(y0_hybrid_lms_lpf);
-plot(y1_hybrid_lms_lpf);
-plot(y2_hybrid_lms_lpf);
-plot(y3_hybrid_lms_lpf);
-title('Hybrid DWT SYM 5');
-xlabel('Sample Index');
-ylabel('Amplitude');
-legend('SNR 0', 'SNR 5', 'SNR 10', 'SNR 15');
-hold off;
-
-% Plot all reconstructions for m1_y{i}_list for i=0,1,2,3
-subplot(4, 1, 4);
-hold on;
-for i = 1:numel(m1_y0_list)
-    plot(m1_y0_list{i}, 'DisplayName', 'SNR 0');
-end
-for i = 1:numel(m1_y1_list)
-    plot(m1_y1_list{i}, 'DisplayName', 'SNR 5');
-end
-for i = 1:numel(m1_y2_list)
-    plot(m1_y2_list{i}, 'DisplayName', 'SNR 10');
-end
-for i = 1:numel(m1_y3_list)
-    plot(m1_y3_list{i}, 'DisplayName', 'SNR 15');
-end
-hold off;
-title('Model 1 Reconstructions');
-xlabel('Sample Index');
-ylabel('Amplitude');
-legend;
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% TODO:
-%  - compute the MAE for each SNR 0,5,10,15 for each model
-%  {hybrid,dwt,model_1}
-% - visualize this in grouped bar charts.. with x-axis SNR
-% groups of bars being the models and y-axis mae
-
-% DO NOT RE-USE ANY OF THE FUNCTIONS ABOVE
-
-
-% Model 1 - MAE computation
-mae_m1_snr_00 = mae(d - m1_y0_list{1});
-mae_m1_snr_05 = mae(d - m1_y1_list{1});
-mae_m1_snr_10 = mae(d - m1_y2_list{1});
-mae_m1_snr_15 = mae(d - m1_y3_list{1});
+% Model 2 - MAE and std. dev computation
+[mae_m2_snr_00, std_m2_snr_00] = compute_avg_and_std_dev_MAE(d, m2_y0_list);
+[mae_m2_snr_05, std_m2_snr_05] = compute_avg_and_std_dev_MAE(d, m2_y1_list);
+[mae_m2_snr_10, std_m2_snr_10] = compute_avg_and_std_dev_MAE(d, m2_y2_list);
+[mae_m2_snr_15, std_m2_snr_15] = compute_avg_and_std_dev_MAE(d, m2_y3_list);
 
 % Hybrid (LPF -> LMS) - MAE computation]
 mae_hybrid_snr_00 = mae(d - y0_hybrid_lpf_lms);
@@ -246,13 +184,30 @@ mae_hybrid2_snr_15 = mae(d - y3_hybrid_lms_lpf);
 % Visualize the MAE results in grouped bar charts
 snrs = [0, 5, 10, 15];
 mae_model_1 = [mae_m1_snr_00, mae_m1_snr_05, mae_m1_snr_10, mae_m1_snr_15];
-mae_hybrid = [mae_hybrid_snr_00, mae_hybrid_snr_05, mae_hybrid_snr_10, mae_hybrid_snr_15];
+std_model_1 = [std_m1_snr_00, std_m1_snr_05, std_m1_snr_10, std_m1_snr_15];
+mae_model_2 = [mae_m2_snr_00, mae_m2_snr_05, mae_m2_snr_10, mae_m2_snr_15];
+std_model_2 = [std_m2_snr_00, std_m2_snr_05, std_m2_snr_10, std_m2_snr_15];
 mae_hybrid2 = [mae_hybrid2_snr_00, mae_hybrid2_snr_05, mae_hybrid2_snr_10, mae_hybrid2_snr_15];
 
+
 figure;
-bar(snrs, [mae_hybrid', mae_hybrid2', mae_model_1']);
+hold on;
+b = bar(snrs, [mae_hybrid2', mae_model_1', mae_model_2']);
+% Adjust the position of the error bars to be centered on the Model 1 and Model 2 bars
+nbars = size(b, 2);
+x = nan(nbars, length(snrs));
+for i = 1:nbars
+    x(i,:) = b(i).XEndPoints;
+end
+% Plot the error bars
+errorbar(x(2,:), mae_model_1, std_model_1, 'k', 'linestyle', 'none', 'CapSize', 10); % Adding error bars to Model 1 bars
+errorbar(x(3,:), mae_model_2, std_model_2, 'r', 'linestyle', 'none', 'CapSize', 10); % Adding error bars to Model 2 bars
+
+% Set x-axis ticks and labels
+set(gca, 'XTick', snrs);
 xlabel('SNR');
 ylabel('Mean Absolute Error (MAE)');
-title('Mean Absolute Error (MAE) for Different Models and SNRs');
-legend('Hybrid (LPF -> LMS)','Hybrid (LMS -> LPF)', 'Model 1');
+title('Composite Noise Removal on ARDB');
+legend('Hybrid [LPF -> LMS]', 'Model 1 (ARDB only)', 'Model 2 (AF Retrained');
 grid on;
+hold off;

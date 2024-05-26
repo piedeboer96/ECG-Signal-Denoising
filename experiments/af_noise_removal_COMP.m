@@ -209,66 +209,55 @@ y1_hybrid_lpf_lms = hybrid_filter_lpf_lms(x1, d);
 y2_hybrid_lpf_lms = hybrid_filter_lpf_lms(x2, d);
 y3_hybrid_lpf_lms = hybrid_filter_lpf_lms(x3, d);
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Model 1 - MAE and std.dev computation
+[mae_m1_snr_00, std_m1_snr_00] = compute_avg_and_std_dev_MAE(d, m1_y0_list);
+[mae_m1_snr_05, std_m1_snr_05] = compute_avg_and_std_dev_MAE(d, m1_y1_list);
+[mae_m1_snr_10, std_m1_snr_10] = compute_avg_and_std_dev_MAE(d, m1_y2_list);
+[mae_m1_snr_15, std_m1_snr_15] = compute_avg_and_std_dev_MAE(d, m1_y3_list);
+
+% Model 2 - MAE and std. dev computation
+[mae_m2_snr_00, std_m2_snr_00] = compute_avg_and_std_dev_MAE(d, m2_y0_list);
+[mae_m2_snr_05, std_m2_snr_05] = compute_avg_and_std_dev_MAE(d, m2_y1_list);
+[mae_m2_snr_10, std_m2_snr_10] = compute_avg_and_std_dev_MAE(d, m2_y2_list);
+[mae_m2_snr_15, std_m2_snr_15] = compute_avg_and_std_dev_MAE(d, m2_y3_list);
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% Visualize the results
-figure;
-
-% Plot clean signal
-subplot(3, 1, 1);
-plot(d);
-title('Clean Signal');
-xlabel('Sample Index');
-ylabel('Amplitude');
-
-% Plot hybrid_lpf_lms signals
-subplot(3, 1, 2);
-hold on;
-plot(y0_hybrid_lpf_lms);
-plot(y1_hybrid_lpf_lms);
-plot(y2_hybrid_lpf_lms);
-plot(y3_hybrid_lpf_lms);
-title('Hybrid LPF -> LMS Filtered Signals');
-xlabel('Sample Index');
-ylabel('Amplitude');
-legend('SNR 0', 'SNR 5', 'SNR 10', 'SNR 15');
-hold off;
-
-% Plot hybrid_lms_lpf signals
-subplot(3, 1, 3);
-hold on;
-plot(m1_y0_list{1});
-plot(m1_y1_list{1});
-plot(m1_y2_list{1});
-plot(m1_y2_list{1});
-title('Model 1');
-xlabel('Sample Index');
-ylabel('Amplitude');
-legend('SNR 0', 'SNR 5', 'SNR 10', 'SNR 15');
-hold off;
-
-%%%%%%%%%%%%%%%%%%%%%%%%
-% Model 1 - MAE computation
-mae_m1_snr_00 = mae(d - m1_y0_list{1});
-mae_m1_snr_05 = mae(d - m1_y1_list{1});
-mae_m1_snr_10 = mae(d - m1_y2_list{1});
-mae_m1_snr_15 = mae(d - m1_y3_list{1});
-
 % Hybrid (LPF -> LMS) - MAE computation]
-mae_hybrid_snr_00 = mae(d - y0_hybrid_lpf_lms);
-mae_hybrid_snr_05 = mae(d - y1_hybrid_lpf_lms);
-mae_hybrid_snr_10 = mae(d - y2_hybrid_lpf_lms);
-mae_hybrid_snr_15 = mae(d - y3_hybrid_lpf_lms);
+mae_hybrid2_snr_00 = mae(d - y0_hybrid_lpf_lms);
+mae_hybrid2_snr_05 = mae(d - y1_hybrid_lpf_lms);
+mae_hybrid2_snr_10 = mae(d - y2_hybrid_lpf_lms);
+mae_hybrid2_snr_15 = mae(d - y3_hybrid_lpf_lms);
 
 
+% Visualize the MAE results in grouped bar charts
 snrs = [0, 5, 10, 15];
 mae_model_1 = [mae_m1_snr_00, mae_m1_snr_05, mae_m1_snr_10, mae_m1_snr_15];
-mae_hybrid = [mae_hybrid_snr_00, mae_hybrid_snr_05, mae_hybrid_snr_10, mae_hybrid_snr_15];
+std_model_1 = [std_m1_snr_00, std_m1_snr_05, std_m1_snr_10, std_m1_snr_15];
+mae_model_2 = [mae_m2_snr_00, mae_m2_snr_05, mae_m2_snr_10, mae_m2_snr_15];
+std_model_2 = [std_m2_snr_00, std_m2_snr_05, std_m2_snr_10, std_m2_snr_15];
+mae_hybrid2 = [mae_hybrid2_snr_00, mae_hybrid2_snr_05, mae_hybrid2_snr_10, mae_hybrid2_snr_15];
+
 
 figure;
-bar(snrs, [mae_hybrid', mae_model_1']);
+hold on;
+b = bar(snrs, [mae_hybrid2', mae_model_1', mae_model_2']);
+% Adjust the position of the error bars to be centered on the Model 1 and Model 2 bars
+nbars = size(b, 2);
+x = nan(nbars, length(snrs));
+for i = 1:nbars
+    x(i,:) = b(i).XEndPoints;
+end
+% Plot the error bars
+errorbar(x(2,:), mae_model_1, std_model_1, 'k', 'linestyle', 'none', 'CapSize', 10); % Adding error bars to Model 1 bars
+errorbar(x(3,:), mae_model_2, std_model_2, 'r', 'linestyle', 'none', 'CapSize', 10); % Adding error bars to Model 2 bars
+
+% Set x-axis ticks and labels
+set(gca, 'XTick', snrs);
 xlabel('SNR');
 ylabel('Mean Absolute Error (MAE)');
-title('Mean Absolute Error (MAE) for Different Models and SNRs');
-legend('Hybrid (LPF -> LMS)','Model 1 (trained ARDB)');
+title('Composite Noise Removal - Artial Fibrillation  (AF)');
+legend('Hybrid [LPF -> LMS]', 'Model 1 (ARDB Trained)', 'Model 2 (AF Retrained)');
 grid on;
+hold off;
