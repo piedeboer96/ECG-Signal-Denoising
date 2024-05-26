@@ -223,6 +223,68 @@ hold off;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+
+
+% FIRST PLOT: LMS model reconstructions at different SNR (overlayed) with legend
+figure;
+
+
+subplot(4,1,1);
+hold on;
+plot(d, 'LineWidth', 1.5, 'Color', '#013220');
+hold off;
+xlabel('Sample');
+ylabel('Amplitude');
+title('Original Signal');
+grid on;
+
+subplot(4,1,2);
+hold on;
+plot(y0_LMS, 'LineWidth', 1.5);
+plot(y1_LMS, 'LineWidth', 1.5);
+plot(y2_LMS, 'LineWidth', 1.5);
+plot(y3_LMS, 'LineWidth', 1.5);
+hold off;
+xlabel('Sample');
+ylabel('Amplitude');
+title('LMS Model Reconstructions at Different SNR');
+legend('SNR 0', 'SNR 5', 'SNR 10', 'SNR 15');
+grid on;
+
+% SECOND PLOT: Model 1 reconstructions at different SNR (overlayed) with legend
+subplot(4,1,3);
+hold on;
+plot(m1_y0_list{1}, 'LineWidth', 1.5);
+plot(m1_y1_list{1}, 'LineWidth', 1.5);
+plot(m1_y2_list{1}, 'LineWidth', 1.5);
+plot(m1_y3_list{1}, 'LineWidth', 1.5);
+hold off;
+xlabel('Sample');
+ylabel('Amplitude');
+title('Model 1 Reconstructions at Different SNR');
+legend('SNR 0', 'SNR 5', 'SNR 10', 'SNR 15');
+grid on;
+
+% THIRD PLOT: Model 2 reconstructions at different SNR (overlayed) with legend
+subplot(4,1,4);
+hold on;
+plot(m2_y0_list{1}, 'LineWidth', 1.5);
+plot(m2_y1_list{1}, 'LineWidth', 1.5);
+plot(m2_y2_list{1}, 'LineWidth', 1.5);
+plot(m2_y3_list{1}, 'LineWidth', 1.5);
+hold off;
+xlabel('Sample');
+ylabel('Amplitude');
+title('Model 2 Reconstructions at Different SNR');
+legend('SNR 0', 'SNR 5', 'SNR 10', 'SNR 15');
+grid on;
+
+sgtitle('Electrode Motion Noise Removal on ARDB');
+
+
+
+
+
 % We did investigate other metrics namely RMSE and PSNR
 % However, these did not offer a lot of additional insights.
 
