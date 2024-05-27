@@ -61,8 +61,16 @@ function [mean_values, std_dev_values] = compute_avg_and_std_dev_PSNR(clean_sign
     std_dev_values = std(PSNR_values);
 end
 
+function mean_MAE_values = compute_avg_MAE_values(clean_signal, reconstructed_signals)
+    % Function to compute MAE from clean and reconstructions, and calculate mean and standard deviation
+    num_signals = length(reconstructed_signals);
+    MAE_values = zeros(1, num_signals);
+    for i = 1:num_signals
+        MAE_values(i) = mean(abs(clean_signal - reconstructed_signals{i}));
+    end
 
-
+    mean_MAE_values = MAE_values
+end
 
 function y_LPF = low_pass_filter(x)
     % Function to use low pass filter
@@ -280,6 +288,7 @@ legend('SNR 0', 'SNR 5', 'SNR 10', 'SNR 15');
 grid on;
 
 sgtitle('Electrode Motion Noise Removal on ARDB');
+
 
 
 

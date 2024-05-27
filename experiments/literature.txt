@@ -24,8 +24,6 @@ GENERAL
 
 
 
-
-
 % LITERATURE
 %   - Marzog, H. A., Abd, H. J., & Yonis, A. Z. (2022). Noise removal of ECG
 %  signal using multi-techniques. IEEE. --> ADAPTIVE FILTER LMS AND RLS 
