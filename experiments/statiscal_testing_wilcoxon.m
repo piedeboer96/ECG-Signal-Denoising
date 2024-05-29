@@ -149,19 +149,19 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Clean Signal
-d = load('noisy_samples/af_sig_HR.mat').sig_HR;
+d = load('noisy_samples/ardb_sig_HR.mat').sig_HR;
 
 % Model 1 - Reconstructions
-m1_snr_00 = 'reconstructions/model_1/af_comp_snr_00';
-m1_snr_05 = 'reconstructions/model_1/af_comp_snr_05';
-m1_snr_10 = 'reconstructions/model_1/af_comp_snr_10';
-m1_snr_15 = 'reconstructions/model_1/af_comp_snr_15';
+m1_snr_00 = 'reconstructions/model_1/ardb_comp_snr_00';
+m1_snr_05 = 'reconstructions/model_1/ardb_comp_snr_05';
+m1_snr_10 = 'reconstructions/model_1/ardb_comp_snr_10';
+m1_snr_15 = 'reconstructions/model_1/ardb_comp_snr_15';
 
 % Model 2 - Reconstructions
-m2_snr_00 = 'reconstructions/model_2/af_comp_snr_00';
-m2_snr_05 = 'reconstructions/model_2/af_comp_snr_05';
-m2_snr_10 = 'reconstructions/model_2/af_comp_snr_10';
-m2_snr_15 = 'reconstructions/model_2/af_comp_snr_15';
+m2_snr_00 = 'reconstructions/model_2/ardb_comp_snr_00';
+m2_snr_05 = 'reconstructions/model_2/ardb_comp_snr_05';
+m2_snr_10 = 'reconstructions/model_2/ardb_comp_snr_10';
+m2_snr_15 = 'reconstructions/model_2/ardb_comp_snr_15';
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Aligning the reconstructed signals to the clean signal - Model 1
@@ -247,4 +247,4 @@ disp(T_combined);
 % Save table to .txt 
 
 % Save the table to a .txt file
-writetable(T_combined, 'results_wilcoxon_af_COMP.txt');
+writetable(T_combined, 'results_wilcoxon_ardb_comp_new.txt');

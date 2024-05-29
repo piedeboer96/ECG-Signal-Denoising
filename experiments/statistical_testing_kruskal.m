@@ -132,7 +132,7 @@ end
 d = load('noisy_samples/af_sig_HR.mat').sig_HR;
 
 % Noise sample
-noise = load('noisy_samples/slices/em_slice_ind.mat');
+% noise = load('noisy_samples/slices/em_slice_ind.mat');
 
 % Model 1 - Reconstructions
 m1_snr_00 = 'reconstructions/model_1/af_comp_snr_00';
@@ -260,3 +260,4 @@ ylabel('MAE');
 grid on;
 % Add p-value annotation to the plot
 text(1.5, max(m2_all_mae_values)*0.95, ['p-value: ', num2str(round(p2, 3))], 'FontSize', 12, 'Color', 'red');
+

@@ -291,9 +291,6 @@ sgtitle('Electrode Motion Noise Removal on ARDB');
 
 
 
-
-
-
 % We did investigate other metrics namely RMSE and PSNR
 % However, these did not offer a lot of additional insights.
 

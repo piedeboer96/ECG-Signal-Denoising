@@ -1,0 +1,6 @@
+Thoughts...
+
+
+It seemed that  wavelet was only good for EMG noise removal,
+although this is not a go to approach... 
+Which motivates our decision to exclude it in these experiments.
