@@ -161,7 +161,7 @@ end
 d = load('noisy_samples/af_sig_HR.mat').sig_HR;
 
 % Noise sample
-noise = load('noisy_samples/slices/comp_slice_ind.mat').comp_slice_ind;
+% noise = load('noisy_samples/slices/comp_slice_ind.mat').comp_slice_ind;
 
 % Noisy Signals at SNR 0, 5, 10 and 15
 x0 = load('noisy_samples/samples/af_sig_SR_comp_snr_00.mat').af_sig_SR_comp_snr_00;
@@ -255,12 +255,15 @@ errorbar(x(3,:), mae_model_2, std_model_2, 'r', 'linestyle', 'none', 'CapSize', 
 
 % Set x-axis ticks and labels
 set(gca, 'XTick', snrs);
-xlabel('SNR');
-ylabel('Mean Absolute Error (MAE)');
-title('Composite Noise Removal - Artial Fibrillation  (AF)');
+xlabel('Signal-to-noise ratio (dB)');
+ylabel('Mean Absolute Error');
+title('Composite Noise Removal on AF');
 legend('Hybrid [LPF -> LMS]', 'Model 1 (ARDB Trained)', 'Model 2 (AF Retrained)');
 grid on;
 hold off;
+
+% Save plot to PNG
+saveas(gcf, 'results_af_comp_bars.png');
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

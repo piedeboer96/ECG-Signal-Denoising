@@ -91,7 +91,7 @@ function y_MA = moving_average_filter(x)
     y_MA = filter(b, a, x);
 end
 
-function idx = get_best_reconstruction(clean_signal, reconstructed_signals)
+% function idx = get_best_reconstruction(clean_signal, reconstructed_signals)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -198,86 +198,88 @@ errorbar(x(4,:), mae_model_2, std_model_2, 'r', 'linestyle', 'none', 'CapSize', 
 
 % Set x-axis ticks and labels
 set(gca, 'XTick', snrs, 'XTickLabel', snrs);
-xlabel('SNR Input (dB)');
-ylabel('Mean Absolute Error (MAE)');
+xlabel('Signal-to-noise ratio input (dB)');
+ylabel('Mean Absolute Error');
 title('Muscle Artifact Noise Removal on ARDB');
-legend('Moving Average (N=4)', 'LPF Kaiser', 'Model 1 (ARDB only)', 'Model 2 (AF Retrained)');
+legend('Moving Average (N=4)', 'LPF Kaiser', 'Model 1 (ARDB Trained)', 'Model 2 (AF Retrained)');
 grid on;
 hold off;
 
 % Save plot to PNG
 
-%saveas(gcf, 'barcharts_ardb_ma.png');
+saveas(gcf, 'results_ardb_ma_bars.png');
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+% TODO: take the plot of the best reconstruction (lowest MAE)
+
 % Plots of reconstructions at various input SNR for the different models 
-figure;
-
-subplot(5,1,1);
-hold on;
-plot(d, 'LineWidth', 1.5, 'Color', '#013220');
-hold off;
-xlabel('Sample');
-ylabel('Amplitude');
-title('Original Signal');
-grid on;
-
-subplot(5,1,2);
-hold on;
-plot(y0_MA, 'LineWidth', 1.5);
-plot(y1_MA, 'LineWidth', 1.5);
-plot(y2_MA, 'LineWidth', 1.5);
-plot(y3_MA, 'LineWidth', 1.5);
-hold off;
-xlabel('Sample');
-ylabel('Amplitude');
-title('Moving Average Reconstructions');
-legend('SNR 0', 'SNR 5', 'SNR 10', 'SNR 15');
-grid on;
-
-subplot(5,1,3);
-hold on;
-plot(y0_LPF, 'LineWidth', 1.5);
-plot(y1_LPF, 'LineWidth', 1.5);
-plot(y2_LPF, 'LineWidth', 1.5);
-plot(y3_LPF, 'LineWidth', 1.5);
-hold off;
-xlabel('Sample');
-ylabel('Amplitude');
-title('LPF Kaiser Reconstructions');
-legend('SNR 0', 'SNR 5', 'SNR 10', 'SNR 15');
-grid on;
-
-subplot(5,1,4);
-hold on;
-plot(m1_y0_list{1}, 'LineWidth', 1.5);
-plot(m1_y1_list{1}, 'LineWidth', 1.5);
-plot(m1_y2_list{1}, 'LineWidth', 1.5);
-plot(m1_y3_list{1}, 'LineWidth', 1.5);
-hold off;
-xlabel('Sample');
-ylabel('Amplitude');
-title('Model 1 (ARDB Only) Reconstructions');
-legend('SNR 0', 'SNR 5', 'SNR 10', 'SNR 15');
-grid on;
-
-% THIRD PLOT: Model 2 reconstructions at different SNR (overlayed) with legend
-subplot(5,1,5);
-hold on;
-plot(m2_y0_list{1}, 'LineWidth', 1.5);
-plot(m2_y1_list{1}, 'LineWidth', 1.5);
-plot(m2_y2_list{1}, 'LineWidth', 1.5);
-plot(m2_y3_list{1}, 'LineWidth', 1.5);
-hold off;
-xlabel('Sample');
-ylabel('Amplitude');
-title('Model 2 (AF Retrained) Reconstructions');
-legend('SNR 0', 'SNR 5', 'SNR 10', 'SNR 15');
-grid on;
-
-sgtitle('Muscle Artifact Noise Removal on ARDB');
+% figure;
+% 
+% subplot(5,1,1);
+% hold on;
+% plot(d, 'LineWidth', 1.5, 'Color', '#013220');
+% hold off;
+% xlabel('Sample');
+% ylabel('Amplitude');
+% title('Original Signal');
+% grid on;
+% 
+% subplot(5,1,2);
+% hold on;
+% plot(y0_MA, 'LineWidth', 1.5);
+% plot(y1_MA, 'LineWidth', 1.5);
+% plot(y2_MA, 'LineWidth', 1.5);
+% plot(y3_MA, 'LineWidth', 1.5);
+% hold off;
+% xlabel('Sample');
+% ylabel('Amplitude');
+% title('Moving Average Reconstructions');
+% legend('SNR 0', 'SNR 5', 'SNR 10', 'SNR 15');
+% grid on;
+% 
+% subplot(5,1,3);
+% hold on;
+% plot(y0_LPF, 'LineWidth', 1.5);
+% plot(y1_LPF, 'LineWidth', 1.5);
+% plot(y2_LPF, 'LineWidth', 1.5);
+% plot(y3_LPF, 'LineWidth', 1.5);
+% hold off;
+% xlabel('Sample');
+% ylabel('Amplitude');
+% title('LPF Kaiser Reconstructions');
+% legend('SNR 0', 'SNR 5', 'SNR 10', 'SNR 15');
+% grid on;
+% 
+% subplot(5,1,4);
+% hold on;
+% plot(m1_y0_list{1}, 'LineWidth', 1.5);
+% plot(m1_y1_list{1}, 'LineWidth', 1.5);
+% plot(m1_y2_list{1}, 'LineWidth', 1.5);
+% plot(m1_y3_list{1}, 'LineWidth', 1.5);
+% hold off;
+% xlabel('Sample');
+% ylabel('Amplitude');
+% title('Model 1 (ARDB Only) Reconstructions');
+% legend('SNR 0', 'SNR 5', 'SNR 10', 'SNR 15');
+% grid on;
+% 
+% % THIRD PLOT: Model 2 reconstructions at different SNR (overlayed) with legend
+% subplot(5,1,5);
+% hold on;
+% plot(m2_y0_list{1}, 'LineWidth', 1.5);
+% plot(m2_y1_list{1}, 'LineWidth', 1.5);
+% plot(m2_y2_list{1}, 'LineWidth', 1.5);
+% plot(m2_y3_list{1}, 'LineWidth', 1.5);
+% hold off;
+% xlabel('Sample');
+% ylabel('Amplitude');
+% title('Model 2 (AF Retrained) Reconstructions');
+% legend('SNR 0', 'SNR 5', 'SNR 10', 'SNR 15');
+% grid on;
+% 
+% sgtitle('Muscle Artifact Noise Removal on ARDB');
 
 % TODO:
 % Save the figure to a .png file

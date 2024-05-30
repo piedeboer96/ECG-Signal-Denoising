@@ -109,8 +109,6 @@ function y_hybrid = hybrid_filter_lpf_lms(x, d)
     y_hybrid = lms_filter(y_LPF, d);
 end
 
-% yes... 
-% - there is a paper : https://ietresearch.onlinelibrary.wiley.com/doi/10.1049/iet-spr.2020.0104#:~:text=For%20base%2Dline%20wander%2C%20and,methods%20for%20composite%20noise%20removal.
 function y_wt = wavelet_denoise(x)
     % Function to use wavelet denoising
     y_wt = wdenoise(x, 'DenoisingMethod', 'Sure', 'Wavelet', 'sym6', 'ThresholdRule', 'Soft');
@@ -125,14 +123,10 @@ function y_MA = moving_average_filter(x)
     y_MA = filter(b, a, x);
 end
 
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Clean Signal
 d = load('noisy_samples/af_sig_HR.mat').sig_HR;
-
-% Noise sample
-% noise = load('noisy_samples/slices/em_slice_ind.mat');
 
 % Model 1 - Reconstructions
 m1_snr_00 = 'reconstructions/model_1/af_comp_snr_00';
@@ -175,31 +169,31 @@ m2_snr_15_mae_values = compute_avg_MAE_values(d, m2_y3_list);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
 
-figure;
-
-subplot(2, 2, 1);
-histogram(m1_snr_00_mae_values);
-title('Histogram of MAE for SNR 0');
-xlabel('MAE');
-ylabel('Frequency');
-
-subplot(2, 2, 2);
-histogram(m1_snr_05_mae_values);
-title('Histogram of MAE for SNR 5');
-xlabel('MAE');
-ylabel('Frequency');
-
-subplot(2, 2, 3);
-histogram(m1_snr_10_mae_values);
-title('Histogram of MAE for SNR 10');
-xlabel('MAE');
-ylabel('Frequency');
-
-subplot(2, 2, 4);
-histogram(m1_snr_15_mae_values);
-title('Histogram of MAE for SNR 15');
-xlabel('MAE');
-ylabel('Frequency');
+% figure;
+% 
+% subplot(2, 2, 1);
+% histogram(m1_snr_00_mae_values);
+% title('Histogram of MAE for SNR 0');
+% xlabel('MAE');
+% ylabel('Frequency');
+% 
+% subplot(2, 2, 2);
+% histogram(m1_snr_05_mae_values);
+% title('Histogram of MAE for SNR 5');
+% xlabel('MAE');
+% ylabel('Frequency');
+% 
+% subplot(2, 2, 3);
+% histogram(m1_snr_10_mae_values);
+% title('Histogram of MAE for SNR 10');
+% xlabel('MAE');
+% ylabel('Frequency');
+% 
+% subplot(2, 2, 4);
+% histogram(m1_snr_15_mae_values);
+% title('Histogram of MAE for SNR 15');
+% xlabel('MAE');
+% ylabel('Frequency');
 
 
 % Combine all MAE values into one array
@@ -244,9 +238,9 @@ figure;
 % Subplot 1: Model 1
 subplot(2,1,1);
 boxplot(m1_all_mae_values, group_m1);
-title('Composite Noise AF - Model 1');
-xlabel('SNR Levels');
-ylabel('MAE');
+title('Model 1 Performance for Composite Noise on AF');
+xlabel('Signal-to-noise ratio input (dB)');
+ylabel('Mean Absolute Error');
 grid on;
 % Add p-value annotation to the plot
 text(1.5, max(m1_all_mae_values)*0.95, ['p-value: ', num2str(round(p1, 3))], 'FontSize', 12, 'Color', 'red');
@@ -254,10 +248,12 @@ text(1.5, max(m1_all_mae_values)*0.95, ['p-value: ', num2str(round(p1, 3))], 'Fo
 % Subplot 2: Model 2
 subplot(2,1,2);
 boxplot(m2_all_mae_values, group_m2);
-title('Composite Noise AF - Model 2');
-xlabel('SNR Levels');
-ylabel('MAE');
+title('Model 2 Performance for Composite Noise on AF');
+xlabel('Signal-to-noise-ratio input (dB)');
+ylabel('Mean Absolute Error');
 grid on;
 % Add p-value annotation to the plot
 text(1.5, max(m2_all_mae_values)*0.95, ['p-value: ', num2str(round(p2, 3))], 'FontSize', 12, 'Color', 'red');
 
+% Save Results
+saveas(gcf, 'results_kruskal_af_comp.png');

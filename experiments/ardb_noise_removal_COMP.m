@@ -90,7 +90,7 @@ end
 d = load('noisy_samples/ardb_sig_HR.mat').sig_HR;
 
 % Noise sample
-noise = load('noisy_samples/slices/comp_slice_ind.mat').comp_slice_ind;
+% noise = load('noisy_samples/slices/comp_slice_ind.mat').comp_slice_ind;
 
 % Noisy Signals at SNR 0, 5, 10 and 15
 x0 = load('noisy_samples/samples/ardb_sig_SR_comp_snr_00.mat').ardb_sig_SR_comp_snr_00;
@@ -205,82 +205,73 @@ errorbar(x(3,:), mae_model_2, std_model_2, 'r', 'linestyle', 'none', 'CapSize', 
 
 % Set x-axis ticks and labels
 set(gca, 'XTick', snrs);
-xlabel('SNR');
-ylabel('Mean Absolute Error (MAE)');
+xlabel('Signal-to-noise ratio input (dB)');
+ylabel('Mean Absolute Error');
 title('Composite Noise Removal on ARDB');
-legend('Hybrid [LPF -> LMS]', 'Model 1 (ARDB only)', 'Model 2 (AF Retrained');
+legend('Hybrid [LPF -> LMS]', 'Model 1 (ARDB Trained)', 'Model 2 (AF Retrained');
 grid on;
 hold off;
 
+% Save plot to PNG
+saveas(gcf, 'results_ardb_comp_bars.png');
 
-%%%% TODO:
-% - make a plot with 3 subplots
-% FIRST PLOT:
-% ---> LMS model reconsturctions at different SNR (overlayed) with legend
-% SNR {0,5,10,15}
-% SECOND PLOT
-% ---> MODEL 1 reconstructions at difffferent SNR (overlayed) with legend
-% SNR {0,5,10,15}
-% THIRD PLOT
-% ---> MODEL 2 reconstructions at different SNR (overlayed) with legend SNR
-% {0,5,10,15}
 
 % the plot should be 3 rows and 1 column
 
 % FIRST PLOT: LMS model reconstructions at different SNR (overlayed) with legend
-figure;
-
-
-subplot(4,1,1);
-hold on;
-plot(d, 'LineWidth', 1.5, 'Color', '#013220');
-hold off;
-xlabel('Sample');
-ylabel('Amplitude');
-title('Original Signal');
-grid on;
-
-
-
-subplot(4,1,2);
-hold on;
-plot(y0_hybrid_lpf_lms, 'LineWidth', 1.5);
-plot(y1_hybrid_lpf_lms, 'LineWidth', 1.5);
-plot(y2_hybrid_lpf_lms, 'LineWidth', 1.5);
-plot(y3_hybrid_lpf_lms, 'LineWidth', 1.5);
-hold off;
-xlabel('Sample');
-ylabel('Amplitude');
-title('LMS Model Reconstructions at Different SNR');
-legend('SNR 0', 'SNR 5', 'SNR 10', 'SNR 15');
-grid on;
-
-% SECOND PLOT: Model 1 reconstructions at different SNR (overlayed) with legend
-subplot(4,1,3);
-hold on;
-plot(m1_y0_list{1}, 'LineWidth', 1.5);
-plot(m1_y1_list{1}, 'LineWidth', 1.5);
-plot(m1_y2_list{1}, 'LineWidth', 1.5);
-plot(m1_y3_list{1}, 'LineWidth', 1.5);
-hold off;
-xlabel('Sample');
-ylabel('Amplitude');
-title('Model 1 Reconstructions at Different SNR');
-legend('SNR 0', 'SNR 5', 'SNR 10', 'SNR 15');
-grid on;
-
-% THIRD PLOT: Model 2 reconstructions at different SNR (overlayed) with legend
-subplot(4,1,4);
-hold on;
-plot(m2_y0_list{1}, 'LineWidth', 1.5);
-plot(m2_y1_list{1}, 'LineWidth', 1.5);
-plot(m2_y2_list{1}, 'LineWidth', 1.5);
-plot(m2_y3_list{1}, 'LineWidth', 1.5);
-hold off;
-xlabel('Sample');
-ylabel('Amplitude');
-title('Model 2 Reconstructions at Different SNR');
-legend('SNR 0', 'SNR 5', 'SNR 10', 'SNR 15');
-grid on;
-
-sgtitle('Composite Noise Removal on ARDB');
+% figure;
+% 
+% 
+% subplot(4,1,1);
+% hold on;
+% plot(d, 'LineWidth', 1.5, 'Color', '#013220');
+% hold off;
+% xlabel('Sample');
+% ylabel('Amplitude');
+% title('Original Signal');
+% grid on;
+% 
+% 
+% 
+% subplot(4,1,2);
+% hold on;
+% plot(y0_hybrid_lpf_lms, 'LineWidth', 1.5);
+% plot(y1_hybrid_lpf_lms, 'LineWidth', 1.5);
+% plot(y2_hybrid_lpf_lms, 'LineWidth', 1.5);
+% plot(y3_hybrid_lpf_lms, 'LineWidth', 1.5);
+% hold off;
+% xlabel('Sample');
+% ylabel('Amplitude');
+% title('LMS Model Reconstructions at Different SNR');
+% legend('SNR 0', 'SNR 5', 'SNR 10', 'SNR 15');
+% grid on;
+% 
+% % SECOND PLOT: Model 1 reconstructions at different SNR (overlayed) with legend
+% subplot(4,1,3);
+% hold on;
+% plot(m1_y0_list{1}, 'LineWidth', 1.5);
+% plot(m1_y1_list{1}, 'LineWidth', 1.5);
+% plot(m1_y2_list{1}, 'LineWidth', 1.5);
+% plot(m1_y3_list{1}, 'LineWidth', 1.5);
+% hold off;
+% xlabel('Sample');
+% ylabel('Amplitude');
+% title('Model 1 Reconstructions at Different SNR');
+% legend('SNR 0', 'SNR 5', 'SNR 10', 'SNR 15');
+% grid on;
+% 
+% % THIRD PLOT: Model 2 reconstructions at different SNR (overlayed) with legend
+% subplot(4,1,4);
+% hold on;
+% plot(m2_y0_list{1}, 'LineWidth', 1.5);
+% plot(m2_y1_list{1}, 'LineWidth', 1.5);
+% plot(m2_y2_list{1}, 'LineWidth', 1.5);
+% plot(m2_y3_list{1}, 'LineWidth', 1.5);
+% hold off;
+% xlabel('Sample');
+% ylabel('Amplitude');
+% title('Model 2 Reconstructions at Different SNR');
+% legend('SNR 0', 'SNR 5', 'SNR 10', 'SNR 15');
+% grid on;
+% 
+% sgtitle('Composite Noise Removal on ARDB');
