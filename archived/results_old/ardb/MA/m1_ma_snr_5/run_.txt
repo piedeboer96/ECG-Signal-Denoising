@@ -1,5 +1,0 @@
-
-
-model 1 - comp 2h02
-
-snr 5

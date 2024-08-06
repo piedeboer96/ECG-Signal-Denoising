@@ -1,5 +1,0 @@
-RUN 12
-
-- dn_model_COMP2h02
-- ardb_slices_noisy_MA_snr3
-- sig_HR = clean_signals[57200][:128]

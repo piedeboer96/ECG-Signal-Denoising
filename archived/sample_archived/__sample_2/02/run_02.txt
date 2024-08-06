@@ -1,5 +1,0 @@
-sample 52222
-
-snr 3 af composite noise
-
-model af 17h25

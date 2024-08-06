@@ -1,8 +1,0 @@
-DATASET=ARDB,NOISE TYPE=EM, NOISE LEVEL SNR = 3
-
-   RMSE (lower better)    PSNR (higher better)    MAE (lower better)
-                       ___________________    ____________________    __________________
-
-    Wavelet      {'RMSE: 0.1524'}          {[16.3407]}             {[0.1177]}    
-    LMS         {'RMSE: 0.2107'}          {[13.5249]}             {[0.1560]}    
-    SR3_2                 {'RMSE: 0.1363'}          {[17.3112]}             {[0.0813]}  

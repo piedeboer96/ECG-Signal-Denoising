@@ -1,8 +1,0 @@
-DATASET = AF, NOISE TYPE = COMP, NOISE LEVEL SNR = 3
-
-                       RMSE (lower better)    PSNR (higher better)    MAE (lower better)
-                       ___________________    ____________________    __________________
-
-    Wavelet      {'RMSE: 0.2741'}          {[11.2429]}             {[0.2263]}    
-    LMS        {'RMSE: 0.1397'}          {[17.0940]}             {[0.1091]}    
-    SR3_1                 {'RMSE: 0.1874'}          {[14.5425]}             {[0.1357]}   
